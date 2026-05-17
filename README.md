@@ -28,6 +28,18 @@
 
 Пошаговая инструкция для VPS (PostgreSQL, Gunicorn, Nginx, HTTPS, SMTP): [docs/Инструкция_хостинг_CompetitionHub.md](docs/Инструкция_хостинг_CompetitionHub.md).
 
+### Docker на VDS
+
+```bash
+cp .env.example .env
+# Заполните SECRET_KEY, DB_PASSWORD, ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS (для домена)
+
+docker compose up -d --build
+docker compose exec web python manage.py createsuperuser
+```
+
+Сайт: `http://IP-вашего-VDS/` (порт 80, сервис `nginx`). Статика и `media/` — в томах Docker.
+
 ## Документация для пояснительной записки
 
 Логическая схема БД (рис. 29, подраздел 2.3.2): [docs/Инструкция_логическая_схема_БД_CompetitionHub.md](docs/Инструкция_логическая_схема_БД_CompetitionHub.md).  

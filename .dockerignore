@@ -1,0 +1,35 @@
+# Git и локальные секреты
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Python / venv
+__pycache__
+*.py[cod]
+venv
+.venv
+env
+*.egg-info
+
+# Django (собираются в образе)
+staticfiles
+media
+db.sqlite3
+*.log
+
+# IDE / ОС
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Документация (не нужна в runtime-образе)
+docs
+
+# Docker (не копировать в себя)
+Dockerfile
+docker-compose*.yml
+.dockerignore
