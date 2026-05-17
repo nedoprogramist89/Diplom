@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% load competitions_extras %}
+{% block title %}{{ competition.title }}{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-inner">
+        <h1>{{ competition.title }}</h1>
+        <div class="row mb-1">
+            {% if competition.status == 'registration' %}
+                <span class="badge badge-warning">{{ competition.get_status_display }}</span>
+            {% elif competition.status == 'running' %}
+                <span class="badge badge-success">{{ competition.get_status_display }}</span>
+            {% elif competition.status == 'finished' %}
+                <span class="badge">{{ competition.get_status_display }}</span>
+            {% else %}
+                <span class="badge">{{ competition.get_status_display }}</span>
+            {% endif %}
+            {% if competition.start_time %}<span class="muted">Начало: {{ competition.start_time }}</span>{% endif %}
+            {% if competition.end_time %}<span class="muted">Окончание: {{ competition.end_time }}</span>{% endif %}
+            <span class="muted">Аудитория: {{ competition.get_audience_display }}</span>
+            <span class="muted">Уровень: {{ competition.get_level_display }}</span>
+            {% if competition.age_label %}<span class="muted">Возраст: {{ competition.age_label }}</span>{% endif %}
+            {% if competition.max_participants %}<span class="muted">Мест: {{ competition.participations.count }}/{{ competition.max_participants }}</span>{% endif %}
+        </div>
+
+        {% if can_edit %}
+        <form method="post" action="{% url 'competitions:quick_status' pk=competition.pk %}" class="quick-status-bar mb-1">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <span class="quick-status-bar-label">Этап соревнования</span>
+            <select name="status" id="comp-quick-status" class="quick-status-select" aria-label="Выбор этапа">
+                {% for val, label in competition_status_choices %}
+                <option value="{{ val }}" {% if val == competition.status %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-secondary">Применить</button>
+            <span class="quick-status-bar-hint muted text-xs">Смена этапа в один клик</span>
+        </form>
+        {% endif %}
+
+        <section class="comp-schedule-shell mb-1" aria-label="Расписание турнира">
+            <div class="comp-schedule-head">
+                <span class="comp-schedule-label">Расписание и фазы</span>
+                <p class="comp-schedule-hint">Этапы и даты турнира.</p>
+            </div>
+            <ol class="comp-schedule-track">
+                {% for ph in schedule_phases %}
+                <li class="comp-phase comp-phase--{{ ph.state }}">
+                    <span class="comp-phase-marker" aria-hidden="true"></span>
+                    <div class="comp-phase-body">
+                        <strong class="comp-phase-title">{{ ph.title }}</strong>
+                        <p class="comp-phase-desc">{{ ph.description }}</p>
+                        {% if ph.date_line %}
+                        <p class="comp-phase-date">{{ ph.date_line }}</p>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ol>
+        </section>
+
+        {% if competition.description %}
+            <div class="reading-text reading-text--block mb-1">{{ competition.description|linebreaks }}</div>
+        {% endif %}
+
+        {% if competition.status == 'published' and not competition.is_registration_open %}
+            <p class="section-desc mb-1 callout-line">Регистрация откроется позже.</p>
+        {% elif competition.status == 'running' and is_participant %}
+            <p class="section-desc mb-1 callout-line">Соревнование идёт — отправляйте решения.</p>
+        {% elif competition.status == 'finished' and is_participant %}
+            <p class="section-desc mb-1 callout-line">Соревнование завершено. Смотрите итоги.</p>
+        {% endif %}
+
+        <div class="action-block">
+            <span class="action-block-label">Участие в соревновании</span>
+            {% if can_register %}
+                <form method="post" action="{% url 'competitions:register' competition_id=competition.pk %}" class="form-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn">Зарегистрироваться</button>
+                </form>
+            {% elif is_participant and competition.is_registration_open %}
+                <form method="post" action="{% url 'competitions:unregister' competition_id=competition.pk %}" class="form-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Отменить регистрацию</button>
+                </form>
+            {% elif is_participant %}
+                <span class="badge badge-success">Вы участвуете</span>
+                {% if competition.status == 'finished' %}
+                <a class="btn btn-ghost btn-sm" href="{% url 'competitions:certificate' pk=competition.pk %}">Скачать сертификат</a>
+                {% endif %}
+            {% else %}
+                <span class="muted">Зарегистрируйтесь в период регистрации, чтобы участвовать.</span>
+            {% endif %}
+        </div>
+
+        {% if announcements %}
+        <h2 class="section-title">Объявления организатора</h2>
+        <p class="section-desc mb-1">Новости соревнования.</p>
+        <ul class="list mb-1">
+            {% for a in announcements %}
+            <li class="list-item">
+                <div class="list-item-main">
+                    <p class="list-item-title">
+                        {% if a.is_pinned %}<span class="badge badge-warning">Закреплено</span>{% endif %}
+                        {{ a.title }}
+                    </p>
+                    <p class="list-snippet">{{ a.body|truncatewords:30 }}</p>
+                    <p class="list-item-meta text-sm">{{ a.created_at }}</p>
+                </div>
+                {% if can_edit %}
+                <div class="list-item-actions">
+                    <a class="btn btn-ghost btn-sm" href="{% url 'competitions:announcement_update' pk=a.pk %}">Изменить</a>
+                    <a class="btn btn-danger btn-sm" href="{% url 'competitions:announcement_delete' pk=a.pk %}">Удалить</a>
+                </div>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% if can_edit %}
+        <p class="mb-1"><a href="{% url 'competitions:announcement_create' competition_id=competition.pk %}" class="btn btn-ghost btn-sm">Добавить объявление</a></p>
+        {% endif %}
+        {% endif %}
+
+        {% if tasks_visible %}
+        <h2 class="section-title">Задачи соревнования</h2>
+        <p class="section-desc mb-1">Список задач и отправка решений.</p>
+        {% if task_list %}
+        <ul class="list">
+            {% for t in task_list %}
+                <li class="list-item">
+                    <div class="list-item-main">
+                        <p class="list-item-title"><a href="{% url 'competitions:task_detail' pk=t.pk %}">{{ t.title }}</a></p>
+                        <p class="list-item-meta">
+                            {% with g=task_schedule_gates|get_item:t.pk %}
+                                {% if g == 'before_open' %}<span class="badge badge-warning">Скоро</span>
+                                {% elif g == 'closed' %}<span class="badge">Закрыта</span>
+                                {% endif %}
+                            {% endwith %}
+                            {% if t.subject %}<span class="badge">{{ t.subject.name }}</span>{% endif %}{% if t.task_type %}<span class="badge badge-warning">{{ t.task_type.name }}</span>{% endif %} Макс. балл: {{ t.max_score }}</p>
+                    </div>
+                    <div class="list-item-actions">
+                        <a class="btn btn-ghost btn-sm" href="{% url 'competitions:task_detail' pk=t.pk %}">Открыть</a>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+        <div class="action-block">
+            <a href="{% url 'competitions:task_list' competition_id=competition.pk %}" class="btn btn-ghost btn-sm">Все задачи →</a>
+            {% if can_edit %}
+            <a href="{% url 'competitions:task_create' competition_id=competition.pk %}" class="btn btn-secondary btn-sm">Добавить задачу</a>
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="callout-line section-desc mb-1">Задач пока нет.</p>
+        {% if can_edit %}
+        <div class="action-block">
+            <a href="{% url 'competitions:task_create' competition_id=competition.pk %}" class="btn btn-secondary">Добавить задачу</a>
+        </div>
+        {% endif %}
+        {% endif %}
+        {% endif %}
+
+        {% if competition.status == 'running' or competition.status == 'finished' %}
+        <div class="action-block">
+            <span class="action-block-label">Результаты</span>
+            <a class="btn btn-ghost btn-sm" href="{% url 'competitions:results' competition_id=competition.pk %}">Таблица результатов</a>
+            {% if can_edit %}
+            <a class="btn btn-ghost btn-sm" href="{% url 'competitions:results_export' competition_id=competition.pk %}">Итоги (CSV)</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if can_grade and not can_edit %}
+        <div class="action-block">
+            <span class="action-block-label">Проверка решений (жюри)</span>
+            <a class="btn btn-ghost btn-sm" href="{% url 'competitions:participants' competition_id=competition.pk %}">Участники</a>
+            <span class="muted text-sm">Откройте задачу → «Все решения по задаче» для оценки.</span>
+        </div>
+        {% endif %}
+        {% if can_edit %}
+        <div class="action-block">
+            <span class="action-block-label">Управление и экспорт</span>
+            <a class="btn btn-ghost btn-sm" href="{% url 'competitions:participants' competition_id=competition.pk %}">Участники</a>
+            <a class="btn btn-ghost btn-sm" href="{% url 'competitions:participants_export' competition_id=competition.pk %}">Участники (CSV)</a>
+            <a class="btn btn-ghost btn-sm" href="{% url 'competitions:solutions_export' competition_id=competition.pk %}">Все решения (CSV)</a>
+            <a href="{% url 'competitions:update' pk=competition.pk %}" class="btn btn-secondary btn-sm">Изменить</a>
+            <a href="{% url 'competitions:delete' pk=competition.pk %}" class="btn btn-danger btn-sm">Удалить</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="spacer"></div>
+<p class="mb-0"><a class="btn btn-ghost btn-sm" href="{% url 'competitions:list' %}">← К списку соревнований</a></p>
+{% endblock %}

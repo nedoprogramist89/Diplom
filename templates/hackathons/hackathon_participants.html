@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Заявки — {{ hackathon.title }}{% endblock %}
+{% block content %}
+<div class="row row--between mb-1">
+    <div>
+        <h1>Заявки на хакатон</h1>
+        <p class="reading-lead mb-0"><a href="{% url 'hackathons:detail' pk=hackathon.pk %}">{{ hackathon.title }}</a></p>
+        {% if total %}
+        <p class="mb-0">Всего заявок: <strong>{{ total }}</strong></p>
+        {% endif %}
+    </div>
+</div>
+
+{% if teams %}
+<div class="card mb-1"><div class="card-inner">
+    <h2 class="section-title">Команды</h2>
+    <ul class="list mb-0">
+        {% for t in teams %}
+        <li class="list-item">
+            <div class="list-item-main">
+                <p class="list-item-title">{{ t.name }}</p>
+                <p class="muted text-xs mb-0">
+                    Капитан:
+                    {% if t.captain_username %}
+                    {{ t.captain_username }}
+                    {% else %}
+                    не назначен
+                    {% endif %}
+                </p>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div></div>
+{% endif %}
+
+{% if registrations %}
+<div class="card"><div class="card-inner">
+    <div class="table-wrap">
+        <table class="table app-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Участник</th>
+                    <th>Команда</th>
+                    <th>Ищу команду</th>
+                    <th>Комментарий</th>
+                    <th>Дата</th>
+                    <th>Назначение</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in registrations %}
+                <tr>
+                    <td>{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                    <td><a href="{% url 'accounts:profile_public' username=r.user.username %}">{{ r.user.username }}</a></td>
+                    <td>{{ r.team_name|default:"—" }}</td>
+                    <td>{% if r.looking_for_team %}да{% else %}—{% endif %}</td>
+                    <td class="muted text-xs">{{ r.comment|default:"—"|truncatechars:40 }}</td>
+                    <td class="muted text-xs">{{ r.registered_at|date:"d.m.Y H:i" }}</td>
+                    <td>
+                        <form method="post" action="{% url 'hackathons:assign_team' hackathon_id=hackathon.pk registration_id=r.pk %}">
+                            {% csrf_token %}
+                            <select name="team_id">
+                                <option value="">Без команды</option>
+                                {% for t in teams %}
+                                <option value="{{ t.pk }}" {% if r.team_id == t.pk %}selected{% endif %}>{{ t.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <label class="muted text-xs">
+                                <input type="checkbox" name="make_captain" value="1" {% if r.is_captain %}checked{% endif %}>
+                                капитан
+                            </label>
+                            <button type="submit" class="btn btn-ghost btn-sm">Сохранить</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <p class="muted mt-4 mb-0">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</p>
+    {% endif %}
+</div></div>
+{% else %}
+<div class="card"><div class="card-inner">
+    <p>Пока нет заявок.</p>
+</div></div>
+{% endif %}
+
+<div class="spacer"></div>
+<p><a class="btn btn-ghost btn-sm" href="{% url 'hackathons:detail' pk=hackathon.pk %}">← К хакатону</a></p>
+{% endblock %}

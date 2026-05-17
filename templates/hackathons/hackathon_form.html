@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}{% if object %}Редактирование хакатона{% else %}Новый хакатон{% endif %}{% endblock %}
+{% block content %}
+<div class="card hackathon-panel">
+    <div class="card-inner">
+        <h1>{% if object %}Редактирование: {{ object.title }}{% else %}Новый хакатон{% endif %}</h1>
+        <p class="section-desc">Заполните основные поля и выберите статус.</p>
+        <form method="post" action="">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="form-actions">
+                <button type="submit" class="btn hackathon-btn-accent">Сохранить</button>
+                {% if object %}
+                <a class="btn btn-ghost" href="{% url 'hackathons:detail' pk=object.pk %}">Отмена</a>
+                {% else %}
+                <a class="btn btn-ghost" href="{% url 'hackathons:list' %}">Отмена</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

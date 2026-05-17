@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Удаление: {{ hackathon.title }}{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-inner">
+        <h1>Удалить хакатон?</h1>
+        <p class="section-desc callout-line">«{{ hackathon.title }}» и все заявки будут удалены без восстановления.</p>
+        <form method="post" action="">
+            {% csrf_token %}
+            <div class="form-actions">
+                <button type="submit" class="btn btn-danger">Удалить</button>
+                <a class="btn btn-ghost" href="{% url 'hackathons:detail' pk=hackathon.pk %}">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

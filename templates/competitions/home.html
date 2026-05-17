@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% block title %}CompetitionHub — Соревнования по программированию{% endblock %}
+{% block content %}
+
+<section class="hero-card home-hero">
+    <h1 class="hero-title">Платформа для настоящих чемпионов</h1>
+    <p class="hero-desc">Выберите турнир, решайте задачи и следите за рейтингом.</p>
+    <div class="hero-actions">
+        <a class="btn" href="{% url 'competitions:list' %}">Перейти к соревнованиям</a>
+        <a class="btn btn-secondary" href="{% url 'hackathons:list' %}">Хакатоны</a>
+        {% if user.is_authenticated and user_can_create_competition %}
+            <a class="btn btn-secondary" href="{% url 'competitions:create' %}">Создать турнир</a>
+        {% endif %}
+    </div>
+    {% if stats %}
+    <div class="hero-stats" aria-label="Статистика платформы">
+        <div class="hero-stats-item">
+            <div class="hero-stats-value">{{ stats.competitions_count }}</div>
+            <div class="hero-stats-label">соревнований на платформе</div>
+        </div>
+        <div class="hero-stats-item">
+            <div class="hero-stats-value">{{ stats.participants_count }}</div>
+            <div class="hero-stats-label">участников зарегистрировано</div>
+        </div>
+        {% if hackathons_count %}
+        <div class="hero-stats-item hero-stats-item--hackathon">
+            <div class="hero-stats-value">{{ hackathons_count }}</div>
+            <div class="hero-stats-label">хакатонов в каталоге</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+
+<section class="section home-section home-section--public">
+    <h2 class="section-title">Публичный доступ</h2>
+    <p class="section-desc">Открытые таблицы и архив завершённых мероприятий.</p>
+    <div class="action-block">
+        <a class="btn btn-ghost btn-sm" href="{% url 'competitions:public_results' %}">Публичные результаты</a>
+        <a class="btn btn-ghost btn-sm" href="{% url 'competitions:archive' %}">Архив мероприятий</a>
+    </div>
+</section>
+
+{% if event_feed %}
+<section class="section home-section home-section--feed">
+    <h2 class="section-title">Центр событий</h2>
+    <p class="section-desc">Ближайшие события в одном списке.</p>
+    <ul class="list">
+        {% for e in event_feed %}
+        <li class="list-item">
+            <div class="list-item-main">
+                <p class="list-item-title">
+                    <a href="{{ e.url }}">{{ e.title }}</a>
+                    {% if e.kind == 'hackathon' %}
+                    <span class="badge badge-hackathon">Хакатон</span>
+                    {% else %}
+                    <span class="badge">Соревнование</span>
+                    {% endif %}
+                </p>
+                <p class="list-item-meta">
+                    <span class="badge{% if e.status == 'Регистрация' %} badge-warning{% elif e.status == 'Идёт' or e.status == 'Идёт хакатон' %} badge-success{% endif %}">{{ e.status }}</span>
+                    {% if e.when %} · {{ e.when|date:"d.m.Y H:i" }}{% endif %}
+                </p>
+            </div>
+            <div class="list-item-actions">
+                <a class="btn btn-ghost btn-sm" href="{{ e.url }}">Открыть</a>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% if quick_actions %}
+<section class="section home-section home-section--quick">
+    <h2 class="section-title">Быстрые действия</h2>
+    <p class="section-desc">Частые переходы: публичные материалы, архив и действия для вашего аккаунта.</p>
+    <div class="action-block action-block--row">
+        {% for a in quick_actions %}
+        <a class="btn btn-ghost btn-sm" href="{{ a.url }}">{{ a.label }}</a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if user.is_authenticated and my_active_participations %}
+<section class="section home-section home-section--mine">
+    <h2 class="section-title">Мои соревнования</h2>
+    <p class="section-desc">Ваши активные турниры.</p>
+    <ul class="list">
+        {% for p in my_active_participations %}
+        <li class="list-item">
+            <div class="list-item-main">
+                <p class="list-item-title"><a href="{% url 'competitions:detail' pk=p.competition_id %}">{{ p.competition.title }}</a></p>
+                <p class="list-item-meta">
+                    {% if p.competition.status == 'registration' %}
+                        <span class="badge badge-warning">Регистрация</span>
+                    {% else %}
+                        <span class="badge badge-success">Идёт</span>
+                    {% endif %}
+                    Зарегистрирован: {{ p.registered_at|date:"d.m.Y" }}
+                </p>
+            </div>
+            <div class="list-item-actions">
+                <a class="btn btn-ghost btn-sm" href="{% url 'competitions:detail' pk=p.competition_id %}">Страница турнира</a>
+                <a class="btn btn-secondary btn-sm" href="{% url 'competitions:task_list' competition_id=p.competition_id %}">Задачи</a>
+                {% if p.competition.status == 'running' or p.competition.status == 'finished' %}
+                <a class="btn btn-ghost btn-sm" href="{% url 'competitions:results' competition_id=p.competition_id %}">Результаты</a>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% if hackathons_recent %}
+<section class="section home-section home-section--hackathons">
+    <h2 class="section-title">Хакатоны</h2>
+    <p class="section-desc">Командные мероприятия: треки, демо и итоги.</p>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {% for h in hackathons_recent %}
+        <div class="contest-card hackathon-teaser-card">
+            <p class="hackathon-teaser-kicker">Хакатон</p>
+            <h3><a href="{% url 'hackathons:detail' pk=h.pk %}">{{ h.title }}</a></h3>
+            <p class="meta">
+                {% if h.status == 'registration' %}
+                    <span class="badge badge-hackathon">Регистрация</span>
+                {% elif h.status == 'ongoing' %}
+                    <span class="badge badge-hackathon-live">Идёт</span>
+                {% else %}
+                    <span class="badge">{{ h.get_status_display }}</span>
+                {% endif %}
+                {% if h.starts_at %} · {{ h.starts_at|date:"d.m.Y" }}{% endif %}
+            </p>
+            <a class="btn btn-ghost btn-sm" href="{% url 'hackathons:detail' pk=h.pk %}">Карточка</a>
+        </div>
+        {% endfor %}
+    </div>
+    <p class="mb-0 mt-4"><a class="btn btn-secondary btn-sm" href="{% url 'hackathons:list' %}">Все хакатоны →</a></p>
+</section>
+{% endif %}
+
+{% if recent_competitions %}
+<section class="section home-section home-section--competitions">
+    <h2 class="section-title">Активные соревнования</h2>
+    <p class="section-desc">Последние активные турниры.</p>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {% for c in recent_competitions %}
+        <div class="contest-card">
+            <h3><a href="{% url 'competitions:detail' pk=c.pk %}">{{ c.title }}</a></h3>
+            <p class="meta">
+                {% if c.status == 'registration' %}
+                    <span class="badge badge-warning">Регистрация</span>
+                {% elif c.status == 'running' %}
+                    <span class="badge badge-success">Идёт</span>
+                {% else %}
+                    <span class="badge">{{ c.get_status_display }}</span>
+                {% endif %}
+                {% if c.start_time %} · {{ c.start_time|date:"d.m.Y" }}{% endif %}
+            </p>
+            <a class="btn btn-ghost btn-sm" href="{% url 'competitions:detail' pk=c.pk %}">Подробнее</a>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="spacer"></div>
+    <p class="mb-0"><a class="btn btn-secondary btn-sm" href="{% url 'competitions:list' %}">Все соревнования →</a></p>
+</section>
+{% else %}
+<section class="section home-section home-section--empty">
+    <h2 class="section-title">Соревнования</h2>
+    <p class="section-desc">Пока нет активных турниров.</p>
+    <p class="mb-0"><a class="btn" href="{% url 'competitions:list' %}">Открыть список соревнований</a></p>
+</section>
+{% endif %}
+
+{% endblock %}

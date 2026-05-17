@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% load competitions_extras %}
+{% block title %}Соревнования{% endblock %}
+{% block content %}
+<div class="row row--between mb-1">
+    <div>
+        <h1>Соревнования</h1>
+        <p class="section-desc mb-0 page-lead">Список турниров с поиском и фильтром.</p>
+    </div>
+    <div class="list-item-actions">
+        <a href="{% url 'competitions:public_results' %}" class="btn btn-ghost btn-sm">Публичные результаты</a>
+        <a href="{% url 'competitions:archive' %}" class="btn btn-ghost btn-sm">Архив</a>
+        {% if user.is_authenticated and user_can_create_competition %}
+            <a href="{% url 'competitions:create' %}" class="btn">Создать соревнование</a>
+        {% endif %}
+    </div>
+</div>
+
+<form method="get" action="{% url 'competitions:list' %}" class="filter-panel app-form mb-6">
+    <div class="filter-panel-head">Поиск и фильтр</div>
+    <div class="filter-panel-body">
+        <p class="filter-panel-hint">Введите название или выберите статус.</p>
+        <div class="filter-row">
+            <div class="form-group form-group--flex filter-field">
+                <label for="q">Название</label>
+                <input type="text" name="q" id="q" value="{{ search_q }}" placeholder="Часть названия…">
+            </div>
+            <div class="form-group form-group--flex filter-field">
+                <label for="status">Статус</label>
+                <select name="status" id="status">
+                    <option value="">Все</option>
+                    <option value="published" {% if search_status == 'published' %}selected{% endif %}>Опубликовано</option>
+                    <option value="registration" {% if search_status == 'registration' %}selected{% endif %}>Регистрация</option>
+                    <option value="running" {% if search_status == 'running' %}selected{% endif %}>Идёт</option>
+                    <option value="finished" {% if search_status == 'finished' %}selected{% endif %}>Завершено</option>
+                </select>
+            </div>
+            <div class="form-group form-group--flex filter-field">
+                <label for="audience">Аудитория</label>
+                <select name="audience" id="audience">
+                    <option value="">Любая</option>
+                    {% for val, label in competition_audience_choices %}
+                    <option value="{{ val }}" {% if search_audience == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group form-group--flex filter-field">
+                <label for="level">Уровень</label>
+                <select name="level" id="level">
+                    <option value="">Любой</option>
+                    {% for val, label in competition_level_choices %}
+                    <option value="{{ val }}" {% if search_level == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group form-group--flex filter-field">
+                <label for="age">Возраст участника</label>
+                <input type="number" name="age" id="age" min="0" value="{{ search_age }}" placeholder="Например, 11">
+            </div>
+            <div class="form-group form-group--flex filter-field">
+                <label for="only_free">Свободные места</label>
+                <select name="only_free" id="only_free">
+                    <option value="">Все</option>
+                    <option value="1" {% if search_only_free %}selected{% endif %}>Только со свободными местами</option>
+                </select>
+            </div>
+            <div class="form-group form-group--flex form-group--actions filter-field filter-field--actions">
+                <button type="submit" class="btn btn-sm">Найти</button>
+                {% if search_q or search_status or search_age or search_audience or search_level or search_only_free %}<a href="{% url 'competitions:list' %}" class="btn btn-ghost btn-sm">Сбросить</a>{% endif %}
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if competitions %}
+    <ul class="list list-competitions">
+        {% for c in competitions %}
+            <li class="list-item list-item--competition">
+                <div class="comp-card-main">
+                    <p class="list-item-title comp-title-row">
+                        <a href="{% url 'competitions:detail' pk=c.pk %}">{{ c.title }}</a>
+                    </p>
+                    {% if c.description %}
+                    <p class="comp-snippet">{{ c.description|truncatechars:96 }}</p>
+                    {% endif %}
+                    <div class="comp-meta-panel">
+                        <div class="comp-meta-primary">
+                            <div class="comp-meta-badges">
+                                {% if c.status == 'registration' %}
+                                    <span class="badge badge-warning">{{ c.get_status_display }}</span>
+                                {% elif c.status == 'running' %}
+                                    <span class="badge badge-success">{{ c.get_status_display }}</span>
+                                {% elif c.status == 'finished' %}
+                                    <span class="badge">{{ c.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge">{{ c.get_status_display }}</span>
+                                {% endif %}
+                            </div>
+                            {% if c.start_time %}
+                            <time class="comp-meta-time" datetime="{{ c.start_time|date:'c' }}">{{ c.start_time|date:'d.m.y · H:i' }}</time>
+                            {% endif %}
+                        </div>
+                        <ul class="comp-meta-grid" aria-label="Параметры турнира">
+                            <li title="Число задач в турнире">
+                                <span class="comp-meta-k">Задачи</span>
+                                <span class="comp-meta-v">{{ c.task_count }}</span>
+                            </li>
+                            <li title="Зарегистрированные участники">
+                                <span class="comp-meta-k">Участники</span>
+                                <span class="comp-meta-v">{{ c.participant_count }}</span>
+                            </li>
+                            <li title="{{ c.get_audience_display }}">
+                                <span class="comp-meta-k">Аудитория</span>
+                                <span class="comp-meta-v">{{ c.get_audience_display }}</span>
+                            </li>
+                            <li title="{{ c.get_level_display }}">
+                                <span class="comp-meta-k">Уровень</span>
+                                <span class="comp-meta-v">{{ c.get_level_display }}</span>
+                            </li>
+                            {% if c.age_label %}
+                            <li>
+                                <span class="comp-meta-k">Возраст</span>
+                                <span class="comp-meta-v">{{ c.age_label }}</span>
+                            </li>
+                            {% endif %}
+                            <li title="Заполненность по квоте">
+                                <span class="comp-meta-k">Места</span>
+                                <span class="comp-meta-v">{% if c.max_participants %}{{ c.participant_count }}/{{ c.max_participants }}{% else %}без лимита{% endif %}</span>
+                            </li>
+                        </ul>
+                        {% if c.created_by %}
+                        <p class="comp-meta-footer">Организатор: <span class="comp-meta-user">{{ c.created_by.username }}</span></p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="list-item-actions comp-actions {% if user.is_authenticated and c|user_can_edit_competition:user %}comp-actions--editor{% else %}comp-actions--viewer{% endif %}">
+                    <a class="btn btn-ghost btn-sm" href="{% url 'competitions:detail' pk=c.pk %}">Открыть</a>
+                    {% if user.is_authenticated and c|user_can_edit_competition:user %}
+                        <form method="post" action="{% url 'competitions:quick_status' pk=c.pk %}" class="quick-status-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <select name="status" class="quick-status-select quick-status-select--compact" title="Этап" aria-label="Этап соревнования">
+                                {% for val, label in competition_status_choices %}
+                                <option value="{{ val }}" {% if val == c.status %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-secondary">OK</button>
+                        </form>
+                        <a class="btn btn-secondary btn-sm" href="{% url 'competitions:update' pk=c.pk %}">Изменить</a>
+                        <a class="btn btn-danger btn-sm" href="{% url 'competitions:delete' pk=c.pk %}">Удалить</a>
+                    {% endif %}
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+    {% if page_obj.has_other_pages %}
+        <div class="spacer"></div>
+        <p class="muted pagination-note">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</p>
+    {% endif %}
+{% else %}
+    <div class="card"><div class="card-inner">
+        <p class="reading-lead">Пока нет соревнований.</p>
+        {% if user.is_authenticated and user_can_create_competition %}
+            <div class="card-actions">
+                <a href="{% url 'competitions:create' %}" class="btn">Создать первое</a>
+            </div>
+        {% endif %}
+    </div></div>
+{% endif %}
+{% endblock %}

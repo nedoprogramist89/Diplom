@@ -1,0 +1,160 @@
+ПРИЛОЖЕНИЕ А. ТЕКСТ ПРОГРАММЫ
+
+АННОТАЦИЯ
+В данном программном документе приведён текст программы для WEB-приложения «Информационная система для проведения соревнований и хакатонов CompetitionHub», разрабатываемой в рамках дипломной работы (развитие курсового проекта). В разделе «Текст программы» указаны наименование программы, область её применения, модули приложения в виде таблицы с кратким описанием каждого модуля, а также указание на размещение исходного кода программы.
+
+
+СОДЕРЖАНИЕ
+1.	ТЕКСТ ПРОГРАММЫ	3
+1.1.	Наименование программы	3
+1.2.	Область применения программы	3
+1.3.	Модули	4
+1.4.	Код программы	8
+
+
+
+1. ТЕКСТ ПРОГРАММЫ
+1.1. Наименование программы
+Наименование — «CompetitionHub».
+
+1.2. Область применения программы
+Платформа предназначена для эксплуатации в подразделениях:
+•	Образовательные организации и объединения (школы, колледжи, вузы, кружки, онлайн-площадки) — для проведения олимпиад и соревнований по задачам, а также хакатонов как отдельного вида мероприятий: регистрация участников, публикация задач и материалов, приём решений (текст и файлы), распределение участников по командам (для хакатонов), публичный архив и итоговая информация.
+
+•	Организаторы — преподаватели и координаторы, создающие соревнования и хакатоны, настраивающие этапы жизненного цикла мероприятия, задачи (краткий ответ, выбор варианта, соответствие и др.), ограничения по аудитории, возрасту и квотам, управляющие объявлениями, списком участников, командами хакатона и оцениванием решений; при необходимости — выгрузка результатов в CSV, раздача сертификатов участникам завершённых соревнований.
+
+•	Жюри — эксперты с правом просмотра решений и участников по соревнованиям, выставления баллов и комментариев, просмотром истории изменения оценки, без права создания и редактирования турниров и хакатонов (в границах, заданных приложением).
+
+Конечные пользователи системы:
+•	Участник — регистрация на соревнование или хакатон, просмотр задач (с учётом расписания открытия и дедлайнов), отправка решений, работа в составе команды хакатона (создание команды, заявки, чат), получение уведомлений о смене этапа мероприятия, просмотр своих результатов и публичных итогов.
+
+•	Организатор — в дополнение к правам участника: полное управление своими соревнованиями и хакатонами (задачи, варианты ответов и пары соответствий, материалы к задачам, объявления, участники и команды хакатона, оценивание, экспорт CSV при наличии функции в интерфейсе).
+
+•	Жюри — просмотр участников и решений, ручная проверка и комментарии, учёт журнала изменения баллов там, где функция реализована.
+
+•	Администратор — доступ к панели управления (/admin/): пользователи и роли, модели соревнований и хакатонов, задачи, решения, справочники, просмотр журнала действий (на основе записей LogEntry Django).
+
+
+1.3. Модули
+В таблице 1 приведены файлы программных модулей приложения «CompetitionHub»: конфигурация проекта и точка входа, модули приложений Django (в том числе кастомная команда runserver), каждый файл миграций с краткой характеристикой изменений схемы БД, HTML-шаблоны разделов (включая каждый шаблон приложения accounts), основной CSS, файл зависимостей requirements.txt, файл README с инструкциями по установке и запуску, пример .env.
+
+Таблица 1 – Модули программы
+№  Название модуля  Описание модуля
+1  config/settings.py  Настройки Django: приложения (hackathons и др.), БД, JWT, CORS, статика и медиа (MEDIA_*), шаблоны, контекст-процессоры
+2  config/urls.py  Корневые маршруты: админка, /accounts/, /api/, /hackathons/, корень — веб-интерфейс соревнований
+3  config/admin_site.py  Кастомная панель управления Django
+4  config/api_urls.py  Агрегация маршрутов REST API: auth, соревнования (задачи, участия, решения)
+5  config/wsgi.py  WSGI-приложение для развёртывания
+6  config/asgi.py  ASGI-приложение
+7  config/__init__.py  Пакет конфигурации проекта (инициализация модуля config)
+8  manage.py  Точка входа Django: runserver, migrate, createsuperuser и др.
+9  accounts/models.py  Модель User (роль, организация, тема оформления)
+10  accounts/views.py  Вход, регистрация, профиль, смена и сброс пароля, тема, список уведомлений
+11  accounts/urls.py  Маршруты учётной записи (вход, регистрация, профиль, пароль, уведомления)
+12  accounts/forms.py  Формы регистрации и редактирования профиля
+13  accounts/admin.py  Регистрация пользователя в админ-панели
+14  accounts/apps.py  Конфигурация приложения accounts (AppConfig)
+15  accounts/notifications.py  Вспомогательные функции массовой отправки внутрисистемных уведомлений
+16  accounts/serializers.py  Сериализаторы пользователя для API
+17  accounts/api_views.py  Получение JWT, регистрация, текущий пользователь
+18  accounts/api_urls.py  Маршруты API учётных записей
+19  accounts/context_processors.py  Контекст для шаблонов: тема оформления, уведомления
+20  accounts/migrations/0001_initial.py  Миграция: начальная схема пользователя
+21  accounts/migrations/0002_user_theme.py  Миграция: поле темы оформления
+22  accounts/migrations/0003_inapp_notification.py  Миграция: внутрисистемные уведомления
+23  competitions/models.py  Предметы, типы задач, соревнование (аудитория, уровень, возраст, квота), задача (расписание, материал), варианты, соответствия, участие, решение (файл), история оценки, объявления
+24  competitions/views.py  Главная, соревнования, этапы, задачи, регистрация, решения, оценка с историей, результаты, участники, CSV, публичные итоги, архив, сертификат
+25  competitions/urls.py  Маршруты веб-интерфейса соревнований (архив, публичные итоги)
+26  competitions/forms.py  Формы соревнований, задач (варианты, соответствия), отправки решения с файлом
+27  competitions/admin.py  Регистрация моделей соревнований в админ-панели
+28  competitions/permissions.py  Проверка прав по ролям (организатор, жюри, участник)
+29  competitions/serializers.py  Сериализаторы API соревнований с ограничением полей по ролям
+30  competitions/api_views.py  REST: соревнования, задачи, участие, решения, обновление оценки с историей
+31  competitions/api_urls.py  Маршруты API соревнований
+32  competitions/context_processors.py  Контекст: права на создание соревнований
+33  competitions/signals.py  Уведомления участникам при смене статуса соревнования
+34  competitions/auto_grade.py  Автоматическая проверка ответов (частичный балл, вес по типу задачи)
+35  competitions/matching_utils.py  Логика заданий типа «соответствие»
+36  competitions/task_visibility.py  Видимость задачи и приём решений по расписанию
+37  competitions/schedule.py  Этапы (фазы) соревнования для карточки турнира
+38  competitions/templatetags/competitions_extras.py  Пользовательские теги и фильтры шаблонов соревнований
+39  competitions/apps.py  Конфигурация приложения competitions
+40  competitions/management/commands/runserver.py  Команда runserver: порт по умолчанию из RUNSERVER_PORT (типичные конфликты портов на Windows)
+41  competitions/migrations/0001_initial.py  Миграция Django: начальная схема соревнований
+42  competitions/migrations/0002_task_solution_participation.py  Миграция Django: задачи, решения, участие
+43  competitions/migrations/0003_add_announcement.py  Миграция Django: объявления по соревнованию
+44  competitions/migrations/0004_add_subject_tasktype_taskoption.py  Миграция Django: предметы, типы задач, варианты ответа
+45  competitions/migrations/0005_initial_subject_tasktype_data.py  Миграция Django: начальные данные предметов и типов
+46  competitions/migrations/0006_task_allow_multiple_answers.py  Миграция Django: несколько ответов у задачи
+47  competitions/migrations/0007_task_opens_closes_schedule.py  Миграция Django: расписание открытия и закрытия задач
+48  competitions/migrations/0008_task_matching_pair.py  Миграция Django: пары соответствий
+49  competitions/migrations/0009_tasktype_auto_partial_enabled_and_more.py  Миграция Django: автопроверка и частичный балл
+50  competitions/migrations/0010_competition_max_age_competition_min_age.py  Миграция Django: возрастные ограничения
+51  competitions/migrations/0011_competition_audience_competition_level_and_more.py  Миграция Django: аудитория и уровень
+52  competitions/migrations/0012_solution_attachment_task_organizer_material.py  Миграция Django: вложения решений и материалы организатора
+53  hackathons/models.py  Хакатон, регистрация, команда, роли в команде, сообщения чата
+54  hackathons/views.py  Список и карточка хакатона, CRUD, этапы, регистрация, команды, чат, заявки, капитанство
+55  hackathons/urls.py  Маршруты раздела «Хакатоны», команд и чата
+56  hackathons/forms.py  Формы хакатона, регистрации, чата, создания команды
+57  hackathons/permissions.py  Права на создание и редактирование хакатона
+58  hackathons/schedule.py  Фазы и подсказки по календарю хакатона для шаблонов
+59  hackathons/signals.py  Уведомления при смене статуса хакатона
+60  hackathons/context_processors.py  Контекст: право создавать хакатоны
+61  hackathons/templatetags/hackathons_extras.py  Фильтры и теги шаблонов хакатонов
+62  hackathons/admin.py  Регистрация моделей хакатонов в админ-панели
+63  hackathons/apps.py  Конфигурация приложения hackathons
+64  hackathons/migrations/0001_initial.py  Миграция Django: начальная схема хакатонов
+65  hackathons/migrations/0002_hackathon_results_summary.py  Миграция Django: итоговое описание результатов
+66  hackathons/migrations/0003_hackathon_max_age_hackathon_min_age.py  Миграция Django: возрастные ограничения
+67  hackathons/migrations/0004_hackathon_audience_hackathon_level.py  Миграция Django: аудитория и уровень
+68  hackathons/migrations/0005_hackathonchatmessage.py  Миграция Django: сообщения чата
+69  hackathons/migrations/0006_hackathonteam_hackathonregistration_team.py  Миграция Django: команды и привязка регистрации
+70  hackathons/migrations/0007_hackathon_team_member_system.py  Миграция Django: члены команды и роли
+71  hackathons/migrations/0008_hackathonvideoroom.py  Миграция Django: видеокомната (в последующей миграции удалена)
+72  hackathons/migrations/0009_remove_hackathonvideoroom.py  Миграция Django: удаление сущности видеокомнаты
+73  templates/base.html  Базовый шаблон: навигация, тема, общий каркас страниц
+74  templates/accounts/login.html  Форма входа
+75  templates/accounts/register.html  Регистрация нового пользователя
+76  templates/accounts/profile.html  Профиль пользователя
+77  templates/accounts/profile_edit.html  Редактирование профиля
+78  templates/accounts/profile_public.html  Публичная карточка профиля
+79  templates/accounts/notifications_list.html  Список внутрисистемных уведомлений
+80  templates/accounts/password_change_form.html  Смена пароля
+81  templates/accounts/password_change_done.html  Подтверждение смены пароля
+82  templates/accounts/password_reset_form.html  Запрос сброса пароля по e-mail
+83  templates/accounts/password_reset_confirm.html  Задание нового пароля по ссылке из письма
+84  templates/accounts/password_reset_done.html  Сообщение об отправке письма сброса
+85  templates/accounts/password_reset_complete.html  Завершение сброса пароля
+86  templates/competitions/home.html  Главная: центр событий, соревнования и хакатоны
+87  templates/competitions/competition_list.html  Список соревнований с фильтрами
+88  templates/competitions/competition_detail.html  Карточка соревнования, регистрация, объявления
+89  templates/competitions/competition_form.html  Создание и редактирование соревнования
+90  templates/competitions/competition_confirm_delete.html  Подтверждение удаления соревнования
+91  templates/competitions/competition_results.html  Таблица результатов
+92  templates/competitions/competition_participants.html  Участники соревнования
+93  templates/competitions/public_results_hub.html  Публичный обзор завершённых соревнований
+94  templates/competitions/events_archive.html  Архив завершённых мероприятий
+95  templates/competitions/certificate.html  Вёрстка сертификата участника
+96  templates/competitions/task_list.html  Список задач турнира
+97  templates/competitions/task_detail.html  Карточка задачи, материал организатора
+98  templates/competitions/task_form.html  Форма задачи и загрузка материала
+99  templates/competitions/task_confirm_delete.html  Подтверждение удаления задачи
+100  templates/competitions/solution_form.html  Отправка решения (текст и файл)
+101  templates/competitions/solution_list.html  Список своих решений
+102  templates/competitions/solution_list_all.html  Все решения по задаче (жюри/организатор)
+103  templates/competitions/solution_grade.html  Оценка решения и история баллов
+104  templates/competitions/announcement_form.html  Объявление по соревнованию
+105  templates/competitions/announcement_confirm_delete.html  Удаление объявления
+106  templates/hackathons/hackathon_list.html  Список хакатонов с фильтрами
+107  templates/hackathons/hackathon_detail.html  Карточка хакатона, регистрация, ссылка на команды
+108  templates/hackathons/hackathon_form.html  Создание и редактирование хакатона
+109  templates/hackathons/hackathon_confirm_delete.html  Подтверждение удаления хакатона
+110  templates/hackathons/hackathon_participants.html  Участники и назначение по командам (организатор)
+111  templates/hackathons/hackathon_teams.html  Команды, заявки, капитан, переключение каналов чата
+112  static/app.css  Основные стили интерфейса (карточки, формы, таблицы, команды, чат)
+113  requirements.txt  Зависимости Python: Django, DRF, JWT, CORS, psycopg2 и др.
+114  README.md  Описание проекта, установка зависимостей и запуск для разработки
+115  .env.example  Пример переменных окружения для локального и серверного запуска
+
+1.4. Код программы
+Исходный код программы «CompetitionHub» размещается в каталоге проекта дипломной работы (рабочая копия репозитория). Структура соответствует типовому проекту Django: пакет конфигурации config; приложения accounts, competitions, hackathons; каталоги templates и static; файл manage.py. Полный комплект файлов с исходным текстом передаётся на проверку в составе электронного носителя или репозитория в соответствии с требованиями кафедры.

@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Отправить решение — {{ task.title }}{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-inner">
+        <h1>Отправить решение</h1>
+        <p class="reading-lead">Задача: <strong>{{ task.title }}</strong> • Соревнование: <a href="{% url 'competitions:detail' pk=competition.pk %}">{{ competition.title }}</a></p>
+        {% if task.task_type %}<p class="section-desc mb-1">
+            {% if task.is_multiple_choice %}{% if task.allow_multiple_answers %}Выберите один или несколько вариантов ответа.
+            {% else %}Выберите один вариант ответа из списка.{% endif %}
+            {% elif task.task_type.slug == 'short_answer' %}Введите краткий ответ в одно поле.
+            {% elif task.task_type.slug == 'solve' %}Введите ответ (число или выражение).
+            {% elif task.task_type.slug == 'match' %}Для каждой строки слева выберите подходящий вариант из выпадающего списка (набор справа объединён и перемешан).
+            {% elif task.task_type.slug == 'open_answer' %}Введите развёрнутый ответ, код или текст в поле ниже.
+            {% else %}Заполните поле ответа согласно условию задачи.{% endif %}
+        </p>{% endif %}
+        <form method="post" action="" enctype="multipart/form-data" class="solution-form">
+            {% csrf_token %}
+            {% if task.is_matching %}
+                {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                <div class="match-solution-cards">
+                    {% for field in form.visible_fields %}
+                    <div class="match-solution-card">
+                        <div class="match-solution-card-head">
+                            <span class="match-solution-pair-num">Пара {{ forloop.counter }}</span>
+                        </div>
+                        <label class="match-solution-left-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<span class="field-errors">{{ field.errors }}</span>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% elif task.is_multiple_choice %}
+                {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                <div class="choice-list-wrap">
+                    {% if task.allow_multiple_answers %}
+                        <label>{{ form.selected_options.label }}</label>
+                        <ul class="choice-list">
+                            {% for choice in form.selected_options.field.queryset %}
+                            <li>
+                                <label>
+                                    <input type="checkbox" name="{{ form.selected_options.html_name }}" value="{{ choice.pk }}" {% if form.selected_options.value and choice in form.selected_options.value %}checked{% endif %}>
+                                    <span class="choice-text">{{ choice.text }}</span>
+                                </label>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <label>{{ form.selected_option.label }}</label>
+                        <ul class="choice-list">
+                            {% for choice in form.selected_option.field.queryset %}
+                            <li>
+                                <label>
+                                    <input type="radio" name="{{ form.selected_option.html_name }}" value="{{ choice.pk }}" {% if form.selected_option.value and form.selected_option.value.pk == choice.pk %}checked{% endif %}>
+                                    <span class="choice-text">{{ choice.text }}</span>
+                                </label>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.attachment.id_for_label }}">Файл решения (опционально)</label>
+                    {{ form.attachment }}
+                </div>
+            {% else %}
+                {{ form.as_p }}
+            {% endif %}
+            {% if not task.is_matching and not task.is_multiple_choice %}
+            {% if form.attachment %}
+            <p class="muted text-sm">Можно приложить файл (архив проекта, скриншот, презентацию).</p>
+            {% endif %}
+            {% endif %}
+            <div class="form-actions">
+                <button type="submit" class="btn">Отправить</button>
+                <a class="btn btn-ghost" href="{% url 'competitions:task_detail' pk=task.pk %}">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

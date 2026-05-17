@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="{{ user_theme|default:'dark' }}" class="h-full scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CompetitionHub — Соревнования по программированию{% endblock %}</title>
+    <script>
+      (function() {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: ['selector', '[data-theme="dark"]'],
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+            },
+            colors: {
+              hz: {
+                black: '#010409',
+                void: '#0d1117',
+                panel: '#161b22',
+                elevated: '#21262d',
+                line: '#30363d',
+                muted: '#8b949e',
+                fg: '#c9d1d9',
+                green: '#3fb950',
+                'green-dim': '#238636',
+                cyan: '#58a6ff',
+                warn: '#d29922',
+                danger: '#f85149',
+              },
+            },
+            boxShadow: {
+              glow: '0 0 24px rgba(63, 185, 80, 0.12)',
+              'glow-cyan': '0 0 20px rgba(88, 166, 255, 0.12)',
+            },
+          },
+        },
+      };
+    </script>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'app.css' %}?v=comp-list-meta-grid-2026">
+    {% block extra_css %}{% endblock %}
+</head>
+<body
+  class="min-h-full bg-hz-void font-mono text-sm text-hz-fg antialiased selection:bg-hz-green/30 selection:text-hz-fg"
+  data-theme-save-url="{% if user.is_authenticated %}{% url 'accounts:theme_save' %}{% endif %}"
+  data-csrf-token="{{ csrf_token }}"
+>
+    <div class="flex min-h-screen">
+        <div id="sidebar-backdrop" class="fixed inset-0 z-30 hidden bg-black/70 md:hidden" aria-hidden="true"></div>
+        <aside
+          id="app-sidebar"
+          class="hz-sidebar-shell fixed inset-y-0 left-0 z-40 flex w-[min(100%,17.5rem)] shrink-0 flex-col border-r shadow-xl transition-transform duration-200 md:relative md:inset-auto md:z-auto md:h-auto md:min-h-screen md:w-56 md:translate-x-0 md:shadow-none -translate-x-full"
+          aria-label="Навигация"
+        >
+            <div class="sidebar-brand-row flex items-center gap-2 px-4 py-4">
+                <span class="terminal-brand-badge" aria-hidden="true">&lt;_</span>
+                <div class="min-w-0">
+                    <a href="{% url 'competitions:home' %}" class="block truncate text-[0.95rem] font-semibold tracking-tight text-hz-fg no-underline hover:text-hz-green">
+                        CompetitionHub
+                    </a>
+                    <p class="truncate text-[0.65rem] leading-snug text-hz-muted">Соревнования по программированию</p>
+                </div>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto px-2 py-3" id="sidebar-nav">
+                <p class="sidebar-section-title">Разделы</p>
+                <a href="{% url 'competitions:home' %}" class="sidebar-link {% if request.resolver_match and request.resolver_match.namespace == 'competitions' and request.resolver_match.url_name == 'home' %}sidebar-link--active{% endif %}">Главная</a>
+                <a href="{% url 'competitions:list' %}" class="sidebar-link {% if request.resolver_match and request.resolver_match.namespace == 'competitions' and request.resolver_match.url_name == 'list' %}sidebar-link--active{% endif %}">Соревнования</a>
+                <a href="{% url 'hackathons:list' %}" class="sidebar-link {% if request.resolver_match and request.resolver_match.namespace == 'hackathons' %}sidebar-link--active{% endif %}">Хакатоны</a>
+
+                {% if user.is_authenticated %}
+                <div class="sidebar-divider" role="presentation"></div>
+                <p class="sidebar-section-title">Кабинет</p>
+                <a href="{% url 'accounts:profile' %}" class="sidebar-link {% if request.resolver_match and request.resolver_match.namespace == 'accounts' and request.resolver_match.url_name == 'profile' %}sidebar-link--active{% endif %}">
+                    Профиль
+                    <span class="sidebar-link-note">{{ user.username|truncatechars:14 }}</span>
+                </a>
+                <a href="{% url 'accounts:notifications' %}" class="sidebar-link {% if request.resolver_match and request.resolver_match.namespace == 'accounts' and request.resolver_match.url_name == 'notifications' %}sidebar-link--active{% endif %}">
+                    Уведомления
+                    {% if unread_notifications_count %}
+                    <span class="sidebar-badge-num" title="Непрочитано">{{ unread_notifications_count }}</span>
+                    {% endif %}
+                </a>
+                {% if user.is_staff %}
+                <a href="{% url 'management:index' %}" class="sidebar-link">Панель управления</a>
+                {% endif %}
+                <div class="sidebar-divider sidebar-divider--loose" role="presentation"></div>
+                <a href="{% url 'accounts:logout' %}" class="sidebar-acc-btn sidebar-acc-btn--danger">Выйти</a>
+                {% else %}
+                <div class="sidebar-divider" role="presentation"></div>
+                <p class="sidebar-section-title">Аккаунт</p>
+                <div class="sidebar-account-stack">
+                    <a href="{% url 'accounts:login' %}" class="sidebar-acc-btn">Войти</a>
+                    <a href="{% url 'accounts:register' %}" class="sidebar-acc-btn sidebar-acc-btn--secondary">Регистрация</a>
+                </div>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-settings p-3 space-y-2">
+                <button type="button" class="theme-toggle w-full justify-center" id="theme-toggle" title="Тема оформления" aria-label="Переключить тему: тёмная или светлая">
+                    <span id="theme-icon" class="inline-flex shrink-0" aria-hidden="true"></span>
+                    <span id="theme-label" class="text-xs">Тема</span>
+                </button>
+                <p class="px-1 text-center text-[0.65rem] leading-tight hz-foot-hint">// theme</p>
+            </div>
+        </aside>
+
+        <div class="flex min-w-0 flex-1 flex-col bg-hz-void hz-main-col">
+            <header class="hz-mobile-header sticky top-0 z-20 flex items-center gap-3 border-b border-hz-line bg-hz-panel/95 px-4 py-3 backdrop-blur md:hidden">
+                <button type="button" id="sidebar-open" class="inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded border border-hz-line bg-hz-elevated/80 px-2 text-xs font-semibold text-hz-green hover:border-hz-green/40 hover:bg-hz-panel hz-touch-target" aria-label="Открыть меню">Меню</button>
+                <span class="font-mono text-xs font-medium text-hz-muted truncate hz-mobile-tagline">CompetitionHub</span>
+            </header>
+
+            <main class="main-content-area flex-1 px-4 py-6 md:px-8 md:py-8">
+                {% if messages %}
+                    <ul class="mb-6 space-y-2">
+                        {% for message in messages %}
+                            <li class="rounded border px-4 py-3 text-xs md:text-sm font-mono hz-flash-msg
+                                {% if message.tags == 'success' %}hz-flash-msg--ok
+                                {% elif message.tags == 'error' %}hz-flash-msg--err
+                                {% else %}hz-flash-msg--def{% endif %}">
+                                {{ message }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="mx-auto max-w-5xl">
+                    {% block content %}{% endblock %}
+                </div>
+            </main>
+
+            <footer class="hz-site-footer border-t border-hz-line px-4 py-6 text-center text-[0.7rem]">
+                <p class="font-mono text-hz-muted">CompetitionHub — соревнования по программированию</p>
+                <div class="mt-2 hidden flex-wrap justify-center gap-x-6 gap-y-2 md:flex">
+                    <a href="{% url 'competitions:home' %}" class="footer-nav-link text-hz-muted hover:text-hz-green">Главная</a>
+                    <a href="{% url 'competitions:list' %}" class="footer-nav-link text-hz-muted hover:text-hz-green">Все соревнования</a>
+                    <a href="{% url 'hackathons:list' %}" class="footer-nav-link text-hz-muted hover:text-hz-cyan">Хакатоны</a>
+                    {% if user.is_authenticated and user.is_staff %}
+                    <a href="{% url 'management:index' %}" class="footer-nav-link text-hz-muted hover:text-hz-warn">Панель управления</a>
+                    {% endif %}
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+      (function() {
+        var sidebar = document.getElementById('app-sidebar');
+        var openBtn = document.getElementById('sidebar-open');
+        var backdrop = document.getElementById('sidebar-backdrop');
+        function isDesktop() {
+          return window.matchMedia('(min-width: 768px)').matches;
+        }
+        function closeSidebar() {
+          if (!sidebar || !backdrop || isDesktop()) return;
+          sidebar.classList.add('-translate-x-full');
+          sidebar.classList.remove('translate-x-0');
+          backdrop.classList.add('hidden');
+        }
+        function openSidebar() {
+          if (!sidebar || !backdrop || isDesktop()) return;
+          sidebar.classList.remove('-translate-x-full');
+          sidebar.classList.add('translate-x-0');
+          backdrop.classList.remove('hidden');
+        }
+        if (openBtn) openBtn.addEventListener('click', openSidebar);
+        if (backdrop) backdrop.addEventListener('click', closeSidebar);
+        window.addEventListener('resize', function() {
+          if (isDesktop()) {
+            if (backdrop) backdrop.classList.add('hidden');
+            if (sidebar) {
+              sidebar.classList.remove('translate-x-0');
+              sidebar.classList.add('-translate-x-full');
+            }
+          } else {
+            closeSidebar();
+          }
+        });
+
+        var themes = ['dark', 'light'];
+        var labels = { dark: 'Тёмная', light: 'Светлая' };
+        var icons = {
+          dark: '<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>',
+          light: '<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>'
+        };
+        function getTheme() {
+          return localStorage.getItem('theme') || document.documentElement.getAttribute('data-theme') || 'dark';
+        }
+        function getCsrfToken() {
+          var el = document.querySelector('[name=csrfmiddlewaretoken]');
+          if (el) return el.value;
+          return document.body.getAttribute('data-csrf-token') || '';
+        }
+        function setTheme(t) {
+          document.documentElement.setAttribute('data-theme', t);
+          localStorage.setItem('theme', t);
+          var icon = document.getElementById('theme-icon');
+          var label = document.getElementById('theme-label');
+          if (icon) icon.innerHTML = icons[t] || '';
+          if (label) label.textContent = labels[t] || t;
+          var saveUrl = document.body.getAttribute('data-theme-save-url');
+          if (saveUrl && typeof fetch !== 'undefined') {
+            var form = new FormData();
+            form.append('theme', t);
+            form.append('csrfmiddlewaretoken', getCsrfToken());
+            fetch(saveUrl, { method: 'POST', body: form, credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(function() {});
+          }
+        }
+        var btn = document.getElementById('theme-toggle');
+        if (btn) btn.addEventListener('click', function() {
+          var cur = getTheme();
+          var next = themes[(themes.indexOf(cur) + 1) % themes.length];
+          setTheme(next);
+        });
+        setTheme(getTheme());
+      })();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

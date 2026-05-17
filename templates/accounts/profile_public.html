@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Профиль — {{ profile_user.username }}{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-inner">
+        <div class="row row--between mb-1">
+            <h1>Профиль: {{ profile_user.username }}</h1>
+            {% if is_own_profile %}
+            <a href="{% url 'accounts:profile_edit' %}" class="btn btn-secondary btn-sm">Редактировать</a>
+            {% endif %}
+        </div>
+        {% if profile_user.get_full_name %}
+        <p class="mb-1">Имя: {{ profile_user.get_full_name }}</p>
+        {% endif %}
+        {% if profile_user.organization %}
+        <p class="mb-1">Организация: {{ profile_user.organization }}</p>
+        {% endif %}
+        <p class="mb-1">Роль: {{ profile_user.get_role_display }}</p>
+        {% if is_own_profile %}
+        <p class="mb-0">Email: {{ profile_user.email }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="spacer"></div>
+<div class="card">
+    <div class="card-inner">
+        <h2 class="section-title">Участие в соревнованиях</h2>
+        {% if participations %}
+        <ul class="list">
+            {% for p in participations %}
+            <li class="list-item">
+                <div class="list-item-main">
+                    <p class="list-item-title">
+                        <a href="{% url 'competitions:detail' pk=p.competition_id %}">{{ p.competition.title }}</a>
+                    </p>
+                    <p class="list-item-meta">
+                        {% if p.competition.status == 'registration' %}
+                            <span class="badge badge-warning">{{ p.competition.get_status_display }}</span>
+                        {% elif p.competition.status == 'running' %}
+                            <span class="badge badge-success">{{ p.competition.get_status_display }}</span>
+                        {% elif p.competition.status == 'finished' %}
+                            <span class="badge">{{ p.competition.get_status_display }}</span>
+                        {% else %}
+                            <span class="badge">{{ p.competition.get_status_display }}</span>
+                        {% endif %}
+                        <span class="muted">Зарегистрирован: {{ p.registered_at|date:"d.m.Y H:i" }}</span>
+                    </p>
+                </div>
+                <div class="list-item-actions">
+                    <a class="btn btn-ghost btn-sm" href="{% url 'competitions:detail' pk=p.competition_id %}">Открыть</a>
+                    {% if p.competition.status == 'running' or p.competition.status == 'finished' %}
+                    <a class="btn btn-ghost btn-sm" href="{% url 'competitions:results' competition_id=p.competition_id %}">Результаты</a>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="mb-0">Участник пока не зарегистрирован ни в одном соревновании.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% if is_own_profile %}
+<div class="spacer"></div>
+<p class="mb-0"><a class="btn btn-ghost btn-sm" href="{% url 'accounts:profile' %}">← Мой профиль</a></p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Мой профиль{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-inner">
+        <div class="row row--between mb-1">
+            <h1>Мой профиль</h1>
+            <a href="{% url 'accounts:profile_edit' %}" class="btn btn-secondary btn-sm">Редактировать</a>
+        </div>
+        <p class="mb-1">Имя пользователя: <strong>{{ profile_user.username }}</strong></p>
+        <p class="mb-1">Email: {{ profile_user.email }}</p>
+        {% if profile_user.first_name or profile_user.last_name %}
+        <p class="mb-1">Имя: {{ profile_user.get_full_name|default:"—" }}</p>
+        {% endif %}
+        {% if profile_user.organization %}
+        <p class="mb-1">Организация: {{ profile_user.organization }}</p>
+        {% endif %}
+        <p class="mb-1">Роль: <strong>{{ profile_user.get_role_display }}</strong></p>
+        <div class="action-block">
+            <span class="action-block-label">Ваша роль и права</span>
+            <p class="mb-1">{{ profile_user.get_role_description }}</p>
+            <details class="text-sm details-panel">
+                <summary>Все роли и разграничение прав</summary>
+                <ul class="mb-0 mt-1" style="list-style: none; padding-left: 0;">
+                    <li><strong>Участник</strong> — регистрация на соревнования, отправка решений, просмотр своих решений и результатов. Не может создавать соревнования, редактировать задачи или выставлять баллы другим.</li>
+                    <li><strong>Организатор</strong> — всё то же, плюс создание соревнований и полное управление своими (задачи, объявления, участники, оценка решений).</li>
+                    <li><strong>Жюри</strong> — как участник, плюс просмотр всех решений и участников по любому соревнованию и выставление баллов/статусов. Не может создавать соревнования и редактировать задачи.</li>
+                </ul>
+            </details>
+        </div>
+        <div class="action-block">
+            <span class="action-block-label">Оформление</span>
+            <p class="text-sm muted mb-0 font-mono">Тему переключает кнопка в нижней части левой панели (sidebar). Предпочтение сохраняется в профиле — см. также <a href="{% url 'accounts:profile_edit' %}">редактирование профиля</a>.</p>
+        </div>
+        <div class="action-block">
+            <span class="action-block-label">Безопасность</span>
+            <a href="{% url 'accounts:password_change' %}" class="btn btn-ghost btn-sm">Изменить пароль</a>
+            <a href="{% url 'accounts:password_reset' %}" class="btn btn-ghost btn-sm">Восстановить пароль по почте</a>
+            <a href="{% url 'accounts:email_test' %}" class="btn btn-ghost btn-sm">Тестовое письмо</a>
+            <p class="text-sm muted mb-0">Изменить пароль — если вы знаете текущий. Восстановление — ссылка на сброс придёт на вашу почту. Тестовое письмо помогает проверить, что отправка почты настроена корректно.</p>
+        </div>
+    </div>
+</div>
+
+<div class="spacer"></div>
+<div class="card">
+    <div class="card-inner">
+        <h2 class="section-title">Мои соревнования</h2>
+        <p class="section-desc mb-1">Список соревнований, в которых вы участвуете или участвовали.</p>
+        {% if participations %}
+        <ul class="list">
+            {% for p in participations %}
+            <li class="list-item">
+                <div class="list-item-main">
+                    <p class="list-item-title">
+                        <a href="{% url 'competitions:detail' pk=p.competition_id %}">{{ p.competition.title }}</a>
+                    </p>
+                    <p class="list-item-meta">
+                        {% if p.competition.status == 'registration' %}
+                            <span class="badge badge-warning">{{ p.competition.get_status_display }}</span>
+                        {% elif p.competition.status == 'running' %}
+                            <span class="badge badge-success">{{ p.competition.get_status_display }}</span>
+                        {% elif p.competition.status == 'finished' %}
+                            <span class="badge">{{ p.competition.get_status_display }}</span>
+                        {% else %}
+                            <span class="badge">{{ p.competition.get_status_display }}</span>
+                        {% endif %}
+                        <span class="muted">Зарегистрирован: {{ p.registered_at|date:"d.m.Y H:i" }}</span>
+                    </p>
+                </div>
+                <div class="list-item-actions">
+                    <a class="btn btn-ghost btn-sm" href="{% url 'competitions:detail' pk=p.competition_id %}">Открыть</a>
+                    {% if p.competition.status == 'running' or p.competition.status == 'finished' %}
+                    <a class="btn btn-ghost btn-sm" href="{% url 'competitions:results' competition_id=p.competition_id %}">Результаты</a>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="mb-0">Вы пока не участвовали ни в одном соревновании. <a href="{% url 'competitions:list' %}">Перейти к списку</a>.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

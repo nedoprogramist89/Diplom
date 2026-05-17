@@ -1,0 +1,13 @@
+# Django и сервер
+Django>=5.0,<6
+djangorestframework>=3.14,<4
+django-cors-headers>=4.3,<5
+psycopg2-binary>=2.9,<3
+gunicorn>=21.0,<22
+
+# Аутентификация API (работает в РФ, без внешних сервисов)
+djangorestframework-simplejwt>=5.3,<6
+
+# Утилиты
+python-dotenv>=1.0,<2
+Pillow>=10.0,<11

@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% block title %}{{ hackathon.title }} — хакатон{% endblock %}
+{% block content %}
+<article class="card hackathon-panel">
+    <div class="card-inner">
+        <header class="mb-1">
+            <p class="hackathon-hero-kicker mb-0">Хакатон · {{ hackathon.get_format_display }}{% if hackathon.venue %} · {{ hackathon.venue }}{% endif %}</p>
+            <h1>{{ hackathon.title }}</h1>
+            {% if hackathon.tagline %}
+            <p class="reading-lead mb-0">{{ hackathon.tagline }}</p>
+            {% endif %}
+            <div class="row mb-1 flex-wrap gap-2">
+                {% if hackathon.status == 'registration' %}
+                <span class="badge badge-hackathon">{{ hackathon.get_status_display }}</span>
+                {% elif hackathon.status == 'ongoing' %}
+                <span class="badge badge-hackathon-live">{{ hackathon.get_status_display }}</span>
+                {% elif hackathon.status == 'draft' %}
+                <span class="badge badge-warning">Черновик</span>
+                {% else %}
+                <span class="badge">{{ hackathon.get_status_display }}</span>
+                {% endif %}
+                {% if hackathon.registration_opens_at %}
+                <span class="muted text-xs">Регистрация: с {{ hackathon.registration_opens_at|date:"d.m.Y H:i" }}</span>
+                {% endif %}
+                {% if hackathon.registration_closes_at %}
+                <span class="muted text-xs">до {{ hackathon.registration_closes_at|date:"d.m.Y H:i" }}</span>
+                {% endif %}
+                {% if hackathon.age_label %}
+                <span class="muted text-xs">Возраст: {{ hackathon.age_label }}</span>
+                {% endif %}
+                <span class="muted text-xs">Аудитория: {{ hackathon.get_audience_display }}</span>
+                <span class="muted text-xs">Уровень: {{ hackathon.get_level_display }}</span>
+                {% if hackathon.max_teams %}
+                <span class="muted text-xs">Мест: {{ hackathon.registrations.count }}/{{ hackathon.max_teams }}</span>
+                {% endif %}
+            </div>
+            {% if can_edit %}
+            <form method="post" action="{% url 'hackathons:quick_status' pk=hackathon.pk %}" class="quick-status-bar mb-1">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <span class="quick-status-bar-label">Этап хакатона</span>
+                <select name="status" id="hack-quick-status" class="quick-status-select" aria-label="Выбор этапа">
+                    {% for val, label in hackathon_status_choices %}
+                    <option value="{{ val }}" {% if val == hackathon.status %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm hackathon-btn-accent">Применить</button>
+                <span class="quick-status-bar-hint muted text-xs">Смена этапа в один клик</span>
+            </form>
+            {% endif %}
+        </header>
+
+        <section class="comp-schedule-shell mb-1 hackathon-schedule" aria-label="Этапы хакатона">
+            <div class="comp-schedule-head">
+                <span class="comp-schedule-label">Этапы</span>
+                <p class="comp-schedule-hint">Этапы и даты хакатона.</p>
+            </div>
+            <ol class="comp-schedule-track">
+                {% for ph in schedule_phases %}
+                <li class="comp-phase comp-phase--{{ ph.state }}">
+                    <span class="comp-phase-marker" aria-hidden="true"></span>
+                    <div class="comp-phase-body">
+                        <strong class="comp-phase-title">{{ ph.title }}</strong>
+                        <p class="comp-phase-desc">{{ ph.description }}</p>
+                        {% if ph.date_line %}
+                        <p class="comp-phase-date">{{ ph.date_line }}</p>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ol>
+        </section>
+
+        {% if tracks %}
+        <section class="mb-1">
+            <h2 class="section-title">Треки / направления</h2>
+            <ul class="hackathon-tracks">
+                {% for t in tracks %}
+                <li>{{ t }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {% if hackathon.description %}
+        <section class="mb-1">
+            <h2 class="section-title">О событии</h2>
+            <div class="reading-text reading-text--block">{{ hackathon.description|linebreaks }}</div>
+        </section>
+        {% endif %}
+
+        {% if hackathon.prizes %}
+        <section class="mb-1">
+            <h2 class="section-title">Призы и номинации</h2>
+            <div class="reading-text reading-text--block">{{ hackathon.prizes|linebreaks }}</div>
+        </section>
+        {% endif %}
+
+        {% if hackathon.rules %}
+        <section class="mb-1">
+            <h2 class="section-title">Правила</h2>
+            <div class="reading-text reading-text--block">{{ hackathon.rules|linebreaks }}</div>
+        </section>
+        {% endif %}
+
+        {% if hackathon.results_summary %}
+        <section class="mb-1">
+            <h2 class="section-title">Публичные итоги</h2>
+            <div class="reading-text reading-text--block">{{ hackathon.results_summary|linebreaks }}</div>
+        </section>
+        {% endif %}
+
+        <section class="action-block">
+            <span class="action-block-label">Команды и чат</span>
+            <p class="muted text-sm mb-1">Команды и командный чат вынесены в отдельную страницу.</p>
+            <a class="btn btn-ghost btn-sm" href="{% url 'hackathons:teams' pk=hackathon.pk %}">Открыть раздел «Команды и чат»</a>
+        </section>
+
+        <div class="action-block" id="participation-block">
+            <span class="action-block-label">Участие</span>
+            {% if registration_full and not is_registered %}
+            <p class="muted mb-0">Лимит заявок исчерпан.</p>
+            {% elif can_register %}
+            <form method="post" action="{% url 'hackathons:register' pk=hackathon.pk %}" class="hackathon-reg-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="id_team_name">{{ registration_form.team_name.label }}</label>
+                    {{ registration_form.team_name }}
+                </div>
+                <div class="form-group form-group--inline">
+                    {{ registration_form.looking_for_team }}
+                    <label for="id_looking_for_team">{{ registration_form.looking_for_team.label }}</label>
+                </div>
+                <div class="form-group">
+                    <label for="id_comment">{{ registration_form.comment.label }}</label>
+                    {{ registration_form.comment }}
+                </div>
+                <button type="submit" class="btn hackathon-btn-accent">Подать заявку</button>
+            </form>
+            {% elif is_registered %}
+            <p class="mb-1"><span class="badge badge-hackathon-live">Вы в списке участников</span></p>
+            {% if registration_obj.looking_for_team %}
+            <p class="muted text-sm mb-1">Отмечено: ищу команду.</p>
+            {% endif %}
+            <p class="muted text-xs mb-1">Управление командами и чатами доступно в отдельном разделе.</p>
+            {% if hackathon.is_registration_open %}
+            <form method="post" action="{% url 'hackathons:unregister' pk=hackathon.pk %}" class="form-inline" onsubmit="return confirm('Отменить заявку?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Отозвать заявку</button>
+            </form>
+            {% endif %}
+            {% elif user.is_authenticated %}
+            <p class="muted mb-0">Регистрация сейчас недоступна (даты или статус мероприятия).</p>
+            {% else %}
+            <p class="muted mb-0">
+                <a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}" class="text-hz-cyan hover:underline">Войдите</a>,
+                чтобы подать заявку, когда откроется регистрация.
+            </p>
+            {% endif %}
+        </div>
+
+        {% if can_edit %}
+        <div class="row flex-wrap gap-2 mt-4 pt-4 border-t border-hz-line">
+            <a href="{% url 'hackathons:participants' hackathon_id=hackathon.pk %}" class="btn btn-secondary btn-sm">Список заявок</a>
+            <a href="{% url 'hackathons:update' pk=hackathon.pk %}" class="btn btn-ghost btn-sm">Редактировать</a>
+            <a href="{% url 'hackathons:delete' pk=hackathon.pk %}" class="btn btn-danger btn-sm">Удалить</a>
+        </div>
+        {% endif %}
+    </div>
+</article>
+
+<p class="mt-4 mb-0"><a href="{% url 'hackathons:list' %}" class="btn btn-ghost btn-sm">← Все хакатоны</a></p>
+{% endblock %}

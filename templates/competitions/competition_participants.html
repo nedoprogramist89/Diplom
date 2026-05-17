@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Участники — {{ competition.title }}{% endblock %}
+{% block content %}
+<div class="row row--between mb-1">
+    <div>
+        <h1>Участники</h1>
+        <p class="reading-lead mb-0">Соревнование: <a href="{% url 'competitions:detail' pk=competition.pk %}">{{ competition.title }}</a></p>
+        {% if total_participants %}
+            <p class="mb-0">Всего: <strong>{{ total_participants }}</strong></p>
+        {% endif %}
+    </div>
+</div>
+
+{% if participants %}
+    <div class="card"><div class="card-inner">
+        <div class="table-wrap">
+        <table class="table app-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Логин</th>
+                    <th>Дата регистрации</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in participants %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><a href="{% url 'accounts:profile_public' username=p.user.username %}">{{ p.user.username }}</a></td>
+                        <td class="muted">{{ p.registered_at }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% if page_obj.has_other_pages %}
+            <div class="spacer"></div>
+            <p class="muted">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</p>
+        {% endif %}
+    </div></div>
+{% else %}
+    <div class="card"><div class="card-inner">
+        <p>Пока нет зарегистрированных участников.</p>
+    </div></div>
+{% endif %}
+
+<div class="spacer"></div>
+<p><a class="btn btn-ghost btn-sm" href="{% url 'competitions:detail' pk=competition.pk %}">← К соревнованию</a></p>
+{% endblock %}
+

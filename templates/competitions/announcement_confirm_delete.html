@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Удаление объявления{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-inner">
+        <h1>Удалить объявление?</h1>
+        <p class="section-desc callout-line">«{{ announcement.title }}» будет удалено без возможности восстановления.</p>
+        <form method="post" action="">
+            {% csrf_token %}
+            <div class="form-actions">
+                <button type="submit" class="btn btn-danger">Удалить</button>
+                <a class="btn btn-ghost" href="{% url 'competitions:detail' pk=announcement.competition_id %}">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

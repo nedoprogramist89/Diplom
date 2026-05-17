@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load competitions_extras %}
+{% block title %}Оценка решения — {{ solution.user.username }}{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-inner">
+        <h1>Оценка решения</h1>
+        <p class="reading-lead mb-1">Участник: <strong>{{ solution.user.username }}</strong> • Задача: <a href="{% url 'competitions:task_detail' pk=task.pk %}">{{ task.title }}</a> • Соревнование: <a href="{% url 'competitions:detail' pk=competition.pk %}">{{ competition.title }}</a></p>
+        <p class="section-desc mb-1 callout-line">Отправлено: {{ solution.submitted_at|date:"d.m.Y H:i" }}. Максимум за задачу: {{ task.max_score }} б.</p>
+        <div class="content-block mb-1">{{ solution|solution_display:task }}</div>
+
+        <form method="post" action="">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="form-actions">
+                <button type="submit" class="btn">Сохранить оценку</button>
+                <a class="btn btn-ghost" href="{% url 'competitions:solution_list_all' task_id=task.pk %}">Отмена</a>
+            </div>
+        </form>
+
+        {% if grade_history %}
+        <h2 class="section-title mt-6">История оценивания</h2>
+        <div class="table-wrap">
+            <table class="table app-table">
+                <thead>
+                    <tr>
+                        <th>Когда</th>
+                        <th>Кто</th>
+                        <th>Статус</th>
+                        <th>Баллы</th>
+                        <th>Комментарий</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ev in grade_history %}
+                    <tr>
+                        <td class="muted text-xs">{{ ev.created_at|date:"d.m.Y H:i" }}</td>
+                        <td>{{ ev.graded_by.username|default:"—" }}</td>
+                        <td class="text-xs">{{ ev.from_status }} → {{ ev.to_status }}</td>
+                        <td>{{ ev.from_score }} → <strong>{{ ev.to_score }}</strong></td>
+                        <td class="muted text-xs">{{ ev.to_comment|default:"—"|truncatechars:80 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="spacer"></div>
+<p class="mb-0"><a class="btn btn-ghost btn-sm" href="{% url 'competitions:solution_list_all' task_id=task.pk %}">← К списку решений</a></p>
+{% endblock %}

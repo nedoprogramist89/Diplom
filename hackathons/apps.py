@@ -1,0 +1,10 @@
+from django.apps import AppConfig
+
+
+class HackathonsConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'hackathons'
+    verbose_name = 'Хакатоны'
+
+    def ready(self):
+        import hackathons.signals  # noqa: F401

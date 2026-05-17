@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}{{ task.title }}{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-inner">
+        <h1>{{ task.title }}</h1>
+        <div class="row mb-1">
+            {% if task.subject %}<span class="badge">{{ task.subject.name }}</span>{% endif %}
+            {% if task.task_type %}<span class="badge badge-warning">{{ task.task_type.name }}</span>{% endif %}
+            <span class="badge">Макс. {{ task.max_score }} б.</span>
+            <span class="muted">Соревнование: <a href="{% url 'competitions:detail' pk=task.competition_id %}">{{ competition.title }}</a></span>
+        </div>
+        {% if task.opens_at %}<span class="muted block">Открытие для участников: {{ task.opens_at }}</span>{% endif %}
+        {% if task.closes_at %}<span class="muted block mb-1">Приём решений до: {{ task.closes_at }}</span>{% endif %}
+        {% if task_schedule_gate == 'before_open' %}
+            <p class="callout-line section-desc mb-1">Ещё рано: для участников условие и приём ответов откроются в назначенное время. Организатор и жюри видят задачу целиком.</p>
+        {% elif task_schedule_gate == 'closed' %}
+            <p class="callout-line section-desc mb-1">Окно приёма решений по этой задаче закрыто. Для участников условие скрыто; организатор и жюри по-прежнему видят полный текст.</p>
+        {% endif %}
+
+        {% if can_view_task_body %}
+        <p class="section-desc mb-1 callout-line">Условие задачи и отправка решений. Ниже — действия по этой задаче.</p>
+        <div class="reading-text mb-1">{{ task.description|linebreaks }}</div>
+        {% if task.organizer_material %}
+        <div class="action-block">
+            <span class="action-block-label">Материалы от организатора</span>
+            <a class="btn btn-ghost btn-sm" href="{{ task.organizer_material.url }}" target="_blank" rel="noopener">Скачать материал</a>
+        </div>
+        {% endif %}
+        {% if task.is_multiple_choice and task.options.exists %}
+        <div class="action-block">
+            <span class="action-block-label">Варианты ответа</span>
+            <ul class="choice-list-plain mb-0">
+                {% for opt in task.options.all %}
+                <li>{{ opt.text }}</li>
+                {% endfor %}
+            </ul>
+            <p class="text-sm muted mb-0">Выберите один вариант при отправке решения.</p>
+        </div>
+        {% elif task.is_matching and matching_pairs %}
+        <div class="action-block">
+            <span class="action-block-label">Соответствия</span>
+            {% if show_matching_key %}
+            <table class="task-match-preview-table mt-1 mb-0">
+                <thead><tr><th>Слева</th><th>Правильно справа</th></tr></thead>
+                <tbody>
+                    {% for p in matching_pairs %}
+                    <tr><td>{{ p.left_text|linebreaksbr }}</td><td>{{ p.right_text|linebreaksbr }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p class="text-sm muted mb-0">Участнику при отправке показываются только пункты слева и списки ответов справа.</p>
+            {% else %}
+            <ol class="choice-list-plain mb-0">
+                {% for p in matching_pairs %}
+                <li>{{ p.left_text|linebreaksbr }}</li>
+                {% endfor %}
+            </ol>
+            <p class="text-sm muted mb-0">Выберите для каждой строки вариант из общего списка ответов при отправке решения.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <p class="reading-text mb-1 callout-line">Условие задачи скрыто до открытия окна задачи или после его закрытия — для вашей роли так настроено расписание.</p>
+        {% endif %}
+
+        <div class="action-block">
+            <span class="action-block-label">Действия по задаче</span>
+            {% if can_submit_task_now %}
+                <a class="btn" href="{% url 'competitions:solution_submit' task_id=task.pk %}">Отправить решение</a>
+                <a class="btn btn-ghost" href="{% url 'competitions:my_solutions' task_id=task.pk %}">Мои решения</a>
+            {% elif can_submit %}
+                {% if task_schedule_gate == 'before_open' %}<span class="muted">Решения пока не принимаются: задача ещё закрыта по расписанию.</span>
+                {% elif task_schedule_gate == 'closed' %}<span class="muted">Приём решений по этой задаче завершён.</span>
+                {% else %}<span class="muted">Отправка решений временно недоступна.</span>{% endif %}
+                <a class="btn btn-ghost btn-sm mt-1 inline-block" href="{% url 'competitions:my_solutions' task_id=task.pk %}">Мои решения</a>
+            {% else %}
+                {% if task_schedule_gate != 'closed' %}
+                <a class="btn btn-ghost btn-sm" href="{% url 'competitions:my_solutions' task_id=task.pk %}">Мои решения</a>
+                {% endif %}
+                <span class="muted block mt-1">Отправка решений доступна зарегистрированным участникам во время соревнования.</span>
+            {% endif %}
+        </div>
+        {% if can_grade %}
+        <div class="action-block">
+            <span class="action-block-label">Проверка решений (жюри / организатор)</span>
+            <a class="btn btn-secondary btn-sm" href="{% url 'competitions:solution_list_all' task_id=task.pk %}">Все решения по задаче</a>
+        </div>
+        {% endif %}
+        {% if can_edit %}
+        <div class="action-block">
+            <span class="action-block-label">Управление задачей</span>
+            <a class="btn btn-secondary btn-sm" href="{% url 'competitions:task_update' pk=task.pk %}">Изменить</a>
+            <a class="btn btn-danger btn-sm" href="{% url 'competitions:task_delete' pk=task.pk %}">Удалить</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="spacer"></div>
+<p class="mb-0"><a class="btn btn-ghost btn-sm" href="{% url 'competitions:task_list' competition_id=task.competition_id %}">← К списку задач</a></p>
+{% endblock %}

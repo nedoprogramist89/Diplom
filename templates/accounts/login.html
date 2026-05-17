@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Вход{% endblock %}
+{% block content %}
+<div class="card mx-auto w-full max-w-lg auth-card">
+    <div class="card-inner">
+        <p class="auth-teaser">&lt;_</p>
+        <h1>Вход</h1>
+        <p>Войди, чтобы регистрироваться на соревнования и отправлять решения.</p>
+        <form method="post" action="/accounts/login/">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="form-actions">
+                <button type="submit" class="btn">Войти</button>
+                <a class="btn btn-ghost" href="/accounts/register/">Регистрация</a>
+            </div>
+        </form>
+        <p class="text-sm muted mt-1 mb-0"><a href="{% url 'accounts:password_reset' %}">Забыли пароль?</a></p>
+    </div>
+</div>
+{% endblock %}

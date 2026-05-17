@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load competitions_extras %}
+{% block title %}Задачи — {{ competition.title }}{% endblock %}
+{% block content %}
+<div class="row row--between mb-1">
+    <div>
+        <h1>Задачи</h1>
+        <p class="reading-lead mb-0">Соревнование: <a href="{% url 'competitions:detail' pk=competition.pk %}">{{ competition.title }}</a></p>
+        <p class="section-desc mb-0">Список задач этого турнира. Откройте задачу, чтобы прочитать условие и отправить решение.</p>
+    </div>
+    {% if can_edit %}
+        <a class="btn btn-secondary" href="{% url 'competitions:task_create' competition_id=competition.pk %}">Добавить задачу</a>
+    {% endif %}
+</div>
+
+{% if subjects or task_types %}
+<div class="card mb-1">
+    <div class="card-inner">
+        <p class="section-desc mb-1">Фильтр по предмету и типу задания.</p>
+        <form method="get" action="" class="filter-row">
+            {% if subjects %}
+            <div class="form-group form-group--flex">
+                <label for="id_subject">Предмет</label>
+                <select name="subject" id="id_subject" class="form-control">
+                    <option value="">Все предметы</option>
+                    {% for s in subjects %}
+                    <option value="{{ s.pk }}" {% if filter_subject_id == s.pk %}selected{% endif %}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if task_types %}
+            <div class="form-group form-group--flex">
+                <label for="id_task_type">Тип задания</label>
+                <select name="task_type" id="id_task_type" class="form-control">
+                    <option value="">Все типы</option>
+                    {% for tt in task_types %}
+                    <option value="{{ tt.pk }}" {% if filter_task_type_id == tt.pk %}selected{% endif %}>{{ tt.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="form-group form-group--actions">
+                <button type="submit" class="btn btn-secondary btn-sm">Показать</button>
+                <a class="btn btn-ghost btn-sm" href="{% url 'competitions:task_list' competition_id=competition.pk %}">Сбросить</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if tasks %}
+    <ul class="list">
+        {% for t in tasks %}
+            <li class="list-item">
+                <div class="list-item-main">
+                    <p class="list-item-title"><a href="{% url 'competitions:task_detail' pk=t.pk %}">{{ t.title }}</a></p>
+                    <p class="list-item-meta">
+                        {% with g=task_schedule_gates|get_item:t.pk %}
+                            {% if g == 'before_open' %}<span class="badge badge-warning">Скоро откроется</span>{% endif %}
+                            {% if g == 'closed' %}<span class="badge">Приём закрыт</span>{% endif %}
+                        {% endwith %}
+                        {% if t.subject %}<span class="badge">{{ t.subject.name }}</span>{% endif %}
+                        {% if t.task_type %}<span class="badge badge-warning">{{ t.task_type.name }}</span>{% endif %}
+                        Макс. балл: {{ t.max_score }}{% with best=task_best_scores|get_item:t.pk %}{% if best is not None %} · Ваш лучший результат: <strong>{{ best }} б.</strong>{% endif %}{% endwith %}
+                    </p>
+                </div>
+                <div class="list-item-actions">
+                    <a class="btn btn-ghost btn-sm" href="{% url 'competitions:task_detail' pk=t.pk %}">Открыть</a>
+                    {% if can_submit %}
+                        {% with allow=task_submit_scheduled|get_item:t.pk %}{% if allow %}
+                        <a class="btn btn-secondary btn-sm" href="{% url 'competitions:solution_submit' task_id=t.pk %}">Отправить</a>
+                        {% else %}
+                        <span class="muted text-xs" title="Расписание задачи">Нет приёма</span>
+                        {% endif %}{% endwith %}
+                        <a class="btn btn-ghost btn-sm" href="{% url 'competitions:my_solutions' task_id=t.pk %}">Мои решения</a>
+                    {% endif %}
+                    {% if can_edit %}
+                        <a class="btn btn-ghost btn-sm" href="{% url 'competitions:task_update' pk=t.pk %}">Изменить</a>
+                        <a class="btn btn-danger btn-sm" href="{% url 'competitions:task_delete' pk=t.pk %}">Удалить</a>
+                    {% endif %}
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <div class="card"><div class="card-inner">
+        <p>Задач пока нет.</p>
+        {% if can_edit %}
+            <div class="card-actions">
+                <a class="btn" href="{% url 'competitions:task_create' competition_id=competition.pk %}">Добавить первую задачу</a>
+            </div>
+        {% endif %}
+    </div></div>
+{% endif %}
+<div class="spacer"></div>
+<p><a class="btn btn-ghost btn-sm" href="{% url 'competitions:detail' pk=competition.pk %}">← К соревнованию</a></p>
+{% endblock %}

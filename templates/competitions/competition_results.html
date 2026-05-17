@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Результаты — {{ competition.title }}{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+        <h1 class="hz-page-heading">Таблица результатов</h1>
+        <p class="reading-lead mb-0 text-xs md:text-sm">Соревнование:
+            <a href="{% url 'competitions:detail' pk=competition.pk %}" class="inline-link">{{ competition.title }}</a>
+        </p>
+    </div>
+    {% if can_edit %}
+    <a href="{% url 'competitions:results_export' competition_id=competition.pk %}" class="btn btn-secondary btn-sm shrink-0 whitespace-nowrap">Скачать таблицу (CSV)</a>
+    {% endif %}
+</div>
+
+{% if my_result %}
+<div class="card mb-6 results-self-card">
+    <div class="card-inner">
+        <p class="mb-0 text-sm text-hz-fg md:text-[0.9375rem]">
+            <strong>Ваше место:</strong> {{ my_result.place }} из {{ my_result.total_participants }} —
+            <strong>баллы:</strong>
+            <span class="tabular-nums font-semibold text-hz-green">{{ my_result.total }}</span>
+        </p>
+    </div>
+</div>
+{% endif %}
+
+{% if results %}
+    <div class="leaderboard-frame">
+        <div class="leaderboard-header">
+            <span>Участник и сумма баллов</span>
+            <span class="hidden text-[0.65rem] font-normal normal-case tracking-normal text-hz-muted sm:inline">{{ competition.title|truncatechars:40 }}</span>
+        </div>
+        <div class="table-wrap mb-0">
+        <table class="table app-table leaderboard-table">
+            <thead>
+                <tr>
+                    <th>Место</th>
+                    <th>Участник</th>
+                    <th>Баллы</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in results %}
+                    <tr>
+                        <td class="tabular-nums text-hz-muted">{{ forloop.counter }}</td>
+                        <td><a href="{% url 'accounts:profile_public' username=r.user.username %}" class="inline-link">{{ r.user.username }}</a></td>
+                        <td class="tabular-nums"><strong>{{ r.total_score }}</strong></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% if page_obj.has_other_pages %}
+            <div class="leaderboard-footer-bar px-4 py-2">
+                <p class="muted mb-0 text-xs">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</p>
+            </div>
+        {% endif %}
+    </div>
+{% else %}
+    <div class="card"><div class="card-inner">
+        <p class="section-desc callout-line mb-0 text-sm">Пока нет данных: нет участников или итоги ещё не сформированы.</p>
+    </div></div>
+{% endif %}
+
+<div class="spacer"></div>
+<p><a class="btn btn-ghost btn-sm" href="{% url 'competitions:detail' pk=competition.pk %}">← Назад к соревнованию</a></p>
+{% endblock %}

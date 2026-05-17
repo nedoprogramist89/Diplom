@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% block title %}Команды и чат — {{ hackathon.title }}{% endblock %}
+{% block content %}
+<article class="card hackathon-panel">
+    <div class="card-inner">
+        <header class="mb-1">
+            <p class="hackathon-hero-kicker mb-0">Хакатон · раздел команд</p>
+            <h1>Команды и чат: {{ hackathon.title }}</h1>
+            <p class="reading-lead mb-0">
+                На этой странице: состав команд, заявки на вступление, управление капитаном и командный чат.
+            </p>
+            <div class="row flex-wrap gap-2 mt-1">
+                <a class="btn btn-ghost btn-sm" href="{% url 'hackathons:detail' pk=hackathon.pk %}">← К хакатону</a>
+                {% if can_edit %}
+                <a class="btn btn-ghost btn-sm" href="{% url 'hackathons:participants' hackathon_id=hackathon.pk %}">Панель организатора</a>
+                {% endif %}
+            </div>
+        </header>
+    </div>
+</article>
+
+<section class="teams-page-grid">
+    <div class="card team-hub-card">
+        <div class="card-inner">
+            <p class="team-hub-kicker mb-0">Команды</p>
+            <h2 class="section-title">Состав и вступление</h2>
+            {% if my_team %}
+            <p class="muted text-sm mb-1">
+                Ваша команда: <strong>{{ my_team.name }}</strong>
+                {% if my_team_role == 'captain' %}<span class="badge badge-warning">Капитан</span>{% endif %}
+            </p>
+            {% elif my_team_membership and my_team_role == 'request' %}
+            <p class="muted text-sm mb-1">Вы подали заявку в команду <strong>{{ my_team_membership.team.name }}</strong> и ожидаете ответа капитана.</p>
+            {% endif %}
+
+            {% if can_create_team %}
+            <form method="post" action="{% url 'hackathons:team_create' pk=hackathon.pk %}" class="hackathon-reg-form mb-1">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="id_name">{{ team_create_form.name.label }}</label>
+                    {{ team_create_form.name }}
+                </div>
+                <button type="submit" class="btn btn-secondary btn-sm">Создать команду (стать капитаном)</button>
+            </form>
+            {% elif is_registered and not my_team_membership and not hackathon.allow_user_team_creation %}
+            <p class="muted text-xs mb-1">Команды распределяет организатор — самостоятельно создать команду нельзя.</p>
+            {% endif %}
+            {% if my_team and my_team_role == 'member' %}
+            <form method="post" action="{% url 'hackathons:team_leave' pk=hackathon.pk %}" class="form-inline mb-1" onsubmit="return confirm('Выйти из команды?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Выйти из команды</button>
+            </form>
+            {% endif %}
+
+            {% if teams %}
+            <div class="list">
+                {% for team in teams %}
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <p class="list-item-title">{{ team.name }}</p>
+                        <p class="muted text-xs mb-0">
+                            Капитан: {{ team.captain_user_ui.username|default:"не назначен" }} ·
+                            Участников: {{ team.members_count_ui }}/{{ hackathon.max_team_size }}
+                            {% if team.requests_count_ui %} · заявок: {{ team.requests_count_ui }}{% endif %}
+                        </p>
+                    </div>
+                    <div class="list-item-actions">
+                        {% if user.is_authenticated and is_registered and not my_team_membership and team.has_free_slots_ui %}
+                        <form method="post" action="{% url 'hackathons:team_request_join' pk=hackathon.pk team_id=team.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-ghost btn-sm">Подать заявку</button>
+                        </form>
+                        {% endif %}
+                        {% if can_edit %}
+                        <form method="post" action="{% url 'hackathons:team_dissolve' pk=hackathon.pk %}" onsubmit="return confirm('Расформировать команду {{ team.name }}?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="team_id" value="{{ team.pk }}">
+                            <button type="submit" class="btn btn-danger btn-sm">Расформировать</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted">Команд пока нет.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if my_team and my_team_role == 'captain' %}
+    <div class="card">
+        <div class="card-inner">
+            <h2 class="section-title">Управление командой</h2>
+            {% if pending_requests_for_my_team %}
+            <p class="section-desc mb-1">Входящие заявки в команду «{{ my_team.name }}».</p>
+            <ul class="list mb-1">
+                {% for req in pending_requests_for_my_team %}
+                <li class="list-item">
+                    <div class="list-item-main">
+                        <p class="list-item-title">{{ req.user.username }}</p>
+                        <p class="muted text-xs mb-0">Запрос от {{ req.joined_at|date:"d.m.Y H:i" }}</p>
+                    </div>
+                    <div class="list-item-actions">
+                        <form method="post" action="{% url 'hackathons:team_request_approve' pk=hackathon.pk member_id=req.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm">Одобрить</button>
+                        </form>
+                        <form method="post" action="{% url 'hackathons:team_request_reject' pk=hackathon.pk member_id=req.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm">Отклонить</button>
+                        </form>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="muted mb-1">Новых заявок пока нет.</p>
+            {% endif %}
+
+            {% if team_member_list_for_my_team %}
+            <p class="section-desc mb-1">Состав команды и передача капитана.</p>
+            <ul class="list">
+                {% for m in team_member_list_for_my_team %}
+                <li class="list-item">
+                    <div class="list-item-main">
+                        <p class="list-item-title">{{ m.user.username }}</p>
+                        <p class="muted text-xs mb-0">Роль: {{ m.get_role_display }}</p>
+                    </div>
+                    <div class="list-item-actions">
+                        {% if m.role == 'member' %}
+                        <form method="post" action="{% url 'hackathons:team_transfer_captain' pk=hackathon.pk user_id=m.user_id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-ghost btn-sm">Сделать капитаном</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            <form method="post" action="{% url 'hackathons:team_dissolve' pk=hackathon.pk %}" class="mt-1" onsubmit="return confirm('Расформировать вашу команду?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Расформировать команду</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card" id="team-chat-block">
+        <div class="card-inner">
+            <h2 class="section-title">Командный чат</h2>
+            <div class="chat-channel-switch mb-1">
+                <a class="btn btn-ghost btn-sm {% if chat_mode == 'team' %}is-active{% endif %}" href="?team={{ chat_active_team|urlencode }}&chat=team">Чат команды</a>
+                <a class="btn btn-ghost btn-sm {% if chat_mode == 'organizer' %}is-active{% endif %}" href="?team={{ chat_active_team|urlencode }}&chat=organizer">Чат с организатором</a>
+            </div>
+
+            {% if chat_team_choices %}
+            <form method="get" action="" class="form-inline mb-1">
+                <label for="chat-team-select" class="muted text-sm">Команда:</label>
+                <select id="chat-team-select" name="team">
+                    <option value="">Выберите команду</option>
+                    {% for team in chat_team_choices %}
+                    <option value="{{ team }}" {% if chat_active_team == team %}selected{% endif %}>{{ team }}</option>
+                    {% endfor %}
+                </select>
+                <input type="hidden" name="chat" value="{{ chat_mode }}">
+                <button type="submit" class="btn btn-ghost btn-sm">Открыть</button>
+            </form>
+            {% endif %}
+            {% if chat_available %}
+            <p class="section-desc mb-1">
+                {% if chat_mode == 'organizer' %}Канал команды «{{ chat_active_team }}» с организатором.{% else %}Внутрикомандный канал «{{ chat_active_team }}».{% endif %}
+            </p>
+            <div class="chat-window">
+                <div class="chat-window-scroll">
+                    {% for m in chat_messages %}
+                    <div class="chat-msg">
+                        <div class="chat-msg-head">
+                            <strong>{{ m.author.username }}</strong>
+                            <span class="muted text-xs">{{ m.created_at|date:"d.m.Y H:i" }}</span>
+                        </div>
+                        <div class="chat-msg-body">{{ m.body|linebreaksbr }}</div>
+                    </div>
+                    {% empty %}
+                    <p class="muted">Пока нет сообщений.</p>
+                    {% endfor %}
+                </div>
+                <form method="post" action="{% url 'hackathons:chat_send' pk=hackathon.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="channel" value="{{ chat_mode }}">
+                    {% if can_edit %}<input type="hidden" name="team" value="{{ chat_active_team }}">{% endif %}
+                    {{ chat_form.body }}
+                    <div class="row flex-wrap gap-2 mt-1">
+                        <button type="submit" class="btn btn-sm">Отправить</button>
+                    </div>
+                </form>
+            </div>
+            {% else %}
+            <p class="muted">Выберите команду, чтобы открыть чат.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

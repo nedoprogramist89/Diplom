@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% load hackathons_extras %}
+{% block title %}Хакатоны — CompetitionHub{% endblock %}
+{% block content %}
+<div class="hackathon-hero mb-6">
+    <p class="hackathon-hero-kicker">Раздел</p>
+    <h1 class="hackathon-hero-title">Хакатоны</h1>
+    <p class="hackathon-hero-lead">
+        Командные мероприятия: треки, демо, призы и заявки участников.
+    </p>
+    <div class="hero-actions flex-wrap">
+        <a href="{% url 'competitions:list' %}" class="btn btn-ghost btn-sm">К соревнованиям</a>
+        <a href="{% url 'competitions:public_results' %}" class="btn btn-ghost btn-sm">Публичные результаты</a>
+        <a href="{% url 'competitions:archive' %}" class="btn btn-ghost btn-sm">Архив мероприятий</a>
+        {% if user.is_authenticated and user_can_create_hackathon %}
+        <a href="{% url 'hackathons:create' %}" class="btn btn-sm hackathon-btn-accent">Создать хакатон</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row row--between mb-1">
+    <div>
+        <h2 class="section-title mb-0">Каталог</h2>
+        <p class="section-desc mb-0 page-lead">Список хакатонов с поиском и фильтром.</p>
+    </div>
+</div>
+
+<form method="get" action="{% url 'hackathons:list' %}" class="filter-panel app-form mb-6">
+    <div class="filter-panel-head">Поиск и фильтр</div>
+    <div class="filter-panel-body">
+        <div class="filter-row">
+            <div class="form-group form-group--flex filter-field">
+                <label for="hq">Название</label>
+                <input type="text" name="q" id="hq" value="{{ search_q }}" placeholder="Часть названия…">
+            </div>
+            <div class="form-group form-group--flex filter-field">
+                <label for="hstatus">Статус</label>
+                <select name="status" id="hstatus">
+                    <option value="">Все</option>
+                    {% if user.is_authenticated and user_can_create_hackathon %}
+                    <option value="draft" {% if search_status == 'draft' %}selected{% endif %}>Черновик (мои)</option>
+                    {% endif %}
+                    <option value="published" {% if search_status == 'published' %}selected{% endif %}>Анонс</option>
+                    <option value="registration" {% if search_status == 'registration' %}selected{% endif %}>Регистрация</option>
+                    <option value="ongoing" {% if search_status == 'ongoing' %}selected{% endif %}>Идёт хакатон</option>
+                    <option value="finished" {% if search_status == 'finished' %}selected{% endif %}>Завершён</option>
+                </select>
+            </div>
+            <div class="form-group form-group--flex filter-field">
+                <label for="hage">Возраст участника</label>
+                <input type="number" name="age" id="hage" min="0" value="{{ search_age }}" placeholder="Например, 15">
+            </div>
+            <div class="form-group form-group--flex filter-field">
+                <label for="haudience">Аудитория</label>
+                <select name="audience" id="haudience">
+                    <option value="">Любая</option>
+                    {% for value, label in hackathon_audience_choices %}
+                    <option value="{{ value }}" {% if search_audience == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group form-group--flex filter-field">
+                <label for="hlevel">Уровень</label>
+                <select name="level" id="hlevel">
+                    <option value="">Любой</option>
+                    {% for value, label in hackathon_level_choices %}
+                    <option value="{{ value }}" {% if search_level == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group form-group--flex filter-field">
+                <label for="hfree">Свободные места</label>
+                <select name="only_free" id="hfree">
+                    <option value="">Все</option>
+                    <option value="1" {% if search_only_free %}selected{% endif %}>Только со свободными местами</option>
+                </select>
+            </div>
+            <div class="form-group form-group--flex form-group--actions filter-field filter-field--actions">
+                <button type="submit" class="btn btn-sm">Найти</button>
+                {% if search_q or search_status or search_age or search_audience or search_level or search_only_free %}<a href="{% url 'hackathons:list' %}" class="btn btn-ghost btn-sm">Сбросить</a>{% endif %}
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if hackathons %}
+<ul class="list list-hackathons">
+    {% for h in hackathons %}
+    <li class="list-item list-item--hackathon">
+        <div class="hackathon-card-main">
+            <p class="list-item-title hackathon-title-row">
+                <a href="{% url 'hackathons:detail' pk=h.pk %}">{{ h.title }}</a>
+                <span class="hackathon-format-pill">{{ h.get_format_display }}</span>
+            </p>
+            {% if h.tagline %}
+            <p class="comp-snippet text-hz-muted">{{ h.tagline }}</p>
+            {% elif h.description %}
+            <p class="comp-snippet">{{ h.description|truncatechars:110 }}</p>
+            {% endif %}
+            <div class="comp-meta-panel">
+                <div class="comp-meta-primary">
+                    <div class="comp-meta-badges">
+                        {% if h.status == 'registration' %}
+                        <span class="badge badge-hackathon">{{ h.get_status_display }}</span>
+                        {% elif h.status == 'ongoing' %}
+                        <span class="badge badge-hackathon-live">{{ h.get_status_display }}</span>
+                        {% elif h.status == 'finished' %}
+                        <span class="badge">{{ h.get_status_display }}</span>
+                        {% elif h.status == 'draft' %}
+                        <span class="badge badge-warning">Черновик</span>
+                        {% else %}
+                        <span class="badge">{{ h.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                    {% if h.starts_at %}
+                    <time class="comp-meta-time" datetime="{{ h.starts_at|date:'c' }}">{{ h.starts_at|date:'d.m.y · H:i' }}</time>
+                    {% endif %}
+                </div>
+                <ul class="comp-meta-grid" aria-label="Параметры хакатона">
+                    <li title="Число заявок участников">
+                        <span class="comp-meta-k">Заявки</span>
+                        <span class="comp-meta-v">{{ h.reg_count }}</span>
+                    </li>
+                    <li title="{{ h.get_audience_display }}">
+                        <span class="comp-meta-k">Аудитория</span>
+                        <span class="comp-meta-v">{{ h.get_audience_display }}</span>
+                    </li>
+                    <li title="{{ h.get_level_display }}">
+                        <span class="comp-meta-k">Уровень</span>
+                        <span class="comp-meta-v">{{ h.get_level_display }}</span>
+                    </li>
+                    {% if h.age_label %}
+                    <li>
+                        <span class="comp-meta-k">Возраст</span>
+                        <span class="comp-meta-v">{{ h.age_label }}</span>
+                    </li>
+                    {% endif %}
+                    <li title="Команды / квота">
+                        <span class="comp-meta-k">Места</span>
+                        <span class="comp-meta-v">{% if h.max_teams %}{{ h.reg_count }}/{{ h.max_teams }}{% else %}без лимита{% endif %}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="list-item-actions comp-actions {% if user.is_authenticated and h|user_can_edit_hackathon:user %}hack-actions--editor{% else %}hack-actions--viewer{% endif %}">
+            <a class="btn btn-ghost btn-sm" href="{% url 'hackathons:detail' pk=h.pk %}">Подробнее</a>
+            {% if user.is_authenticated and h|user_can_edit_hackathon:user %}
+            <form method="post" action="{% url 'hackathons:quick_status' pk=h.pk %}" class="quick-status-inline">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <select name="status" class="quick-status-select quick-status-select--compact" title="Этап" aria-label="Этап хакатона">
+                    {% for val, label in hackathon_status_choices %}
+                    <option value="{{ val }}" {% if val == h.status %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm hackathon-btn-accent">OK</button>
+            </form>
+            <a class="btn btn-secondary btn-sm" href="{% url 'hackathons:update' pk=h.pk %}">Изменить</a>
+            {% endif %}
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% if page_obj.has_other_pages %}
+<p class="muted pagination-note mt-4">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</p>
+{% endif %}
+{% else %}
+<div class="card"><div class="card-inner">
+    <p class="reading-lead">Пока нет хакатонов по выбранным условиям.</p>
+    {% if user.is_authenticated and user_can_create_hackathon %}
+    <a href="{% url 'hackathons:create' %}" class="btn hackathon-btn-accent">Создать первый хакатон</a>
+    {% endif %}
+</div></div>
+{% endif %}
+{% endblock %}

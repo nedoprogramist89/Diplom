@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сертификат участника — {{ competition.title }}</title>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #eef3f9;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+.certificate-wrap {
+    max-width: 1200px;
+    margin: 28px auto;
+    padding: 0 16px;
+}
+.certificate-paper {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    border: 1px solid rgba(10, 64, 120, 0.16);
+    border-radius: 18px;
+    box-shadow: 0 20px 46px rgba(0, 0, 0, 0.18);
+    color: #0f172a;
+}
+.certificate-head {
+    padding: 34px 42px 26px;
+    background: linear-gradient(135deg, #0b4f89 0%, #0e7ac4 52%, #21b4df 100%);
+    color: #f8fbff;
+}
+.certificate-head-kicker {
+    margin: 0;
+    font-size: 14px;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    opacity: .9;
+}
+.certificate-head-title {
+    margin: 12px 0 0;
+    font-size: clamp(24px, 3vw, 34px);
+    line-height: 1.2;
+    font-weight: 700;
+}
+.certificate-body {
+    padding: 42px 52px 28px;
+    text-align: center;
+}
+.certificate-title {
+    margin: 0;
+    font-size: clamp(44px, 7vw, 74px);
+    line-height: 1;
+    letter-spacing: .08em;
+    font-weight: 300;
+}
+.certificate-subtitle {
+    margin: 18px auto 22px;
+    font-size: clamp(17px, 2vw, 29px);
+    color: #334155;
+}
+.certificate-line {
+    max-width: 740px;
+    margin: 12px auto 20px;
+    border-top: 2px solid #0b4f89;
+    opacity: .32;
+}
+.certificate-name {
+    margin: 0;
+    font-size: clamp(28px, 4.2vw, 48px);
+    line-height: 1.15;
+    font-weight: 700;
+    color: #0b4f89;
+}
+.certificate-course {
+    margin: 18px auto 0;
+    max-width: 860px;
+    font-size: clamp(20px, 2.5vw, 34px);
+    line-height: 1.35;
+}
+.certificate-course strong {
+    color: #0f172a;
+}
+.certificate-meta {
+    margin-top: 34px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    text-align: left;
+}
+.certificate-meta-item {
+    border-top: 2px solid rgba(15, 23, 42, .28);
+    padding-top: 10px;
+}
+.certificate-meta-label {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+.certificate-meta-value {
+    margin: 6px 0 0;
+    font-size: 17px;
+    color: #111827;
+    font-weight: 600;
+}
+.certificate-foot {
+    margin-top: 26px;
+    padding: 18px 52px 34px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    color: #334155;
+}
+.certificate-code {
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.certificate-org {
+    text-align: right;
+    font-size: 14px;
+}
+@media (max-width: 840px) {
+    .certificate-meta {
+        grid-template-columns: 1fr;
+    }
+    .certificate-foot {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .certificate-org {
+        text-align: left;
+    }
+}
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 0;
+    }
+    html, body { background: #fff; }
+    .certificate-wrap { margin: 0; padding: 0; max-width: none; }
+    .certificate-paper {
+        width: 100vw;
+        height: 100vh;
+        box-shadow: none;
+        border: none;
+        border-radius: 0;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="certificate-wrap">
+    <div class="certificate-paper">
+        <header class="certificate-head">
+            <p class="certificate-head-kicker">Образовательная платформа</p>
+            <h1 class="certificate-head-title">CompetitionHub</h1>
+        </header>
+
+        <section class="certificate-body">
+            <h2 class="certificate-title">СЕРТИФИКАТ</h2>
+            <p class="certificate-subtitle">Настоящий сертификат подтверждает, что</p>
+            <div class="certificate-line"></div>
+            <p class="certificate-name">{{ issued_to.get_full_name|default:issued_to.username }}</p>
+            <p class="certificate-course">
+                успешно принял(а) участие в мероприятии<br>
+                <strong>«{{ competition.title }}»</strong>
+            </p>
+
+            <div class="certificate-meta">
+                <div class="certificate-meta-item">
+                    <p class="certificate-meta-label">Дата выдачи</p>
+                    <p class="certificate-meta-value">{{ issued_at|date:"d.m.Y" }}</p>
+                </div>
+                <div class="certificate-meta-item">
+                    <p class="certificate-meta-label">Лучший балл</p>
+                    <p class="certificate-meta-value">{{ best_score }}</p>
+                </div>
+                <div class="certificate-meta-item">
+                    <p class="certificate-meta-label">Статус события</p>
+                    <p class="certificate-meta-value">{{ competition.get_status_display }}</p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="certificate-foot">
+            <div class="certificate-code">Код сертификата: {{ certificate_code }}</div>
+            <div class="certificate-org">
+                Ответственный организатор<br>
+                <strong>{{ competition.created_by.get_full_name|default:competition.created_by.username|default:"Оргкомитет" }}</strong>
+            </div>
+        </footer>
+    </div>
+</div>
+</body>
+</html>

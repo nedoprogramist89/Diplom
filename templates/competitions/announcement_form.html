@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}{% if object %}Редактирование объявления{% else %}Новое объявление{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-inner">
+        <h1>{% if object %}Редактирование объявления{% else %}Новое объявление{% endif %}</h1>
+        <p class="reading-lead mb-1">Соревнование: <a href="{% url 'competitions:detail' pk=competition.pk %}">{{ competition.title }}</a></p>
+        <form method="post" action="">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="form-actions">
+                <button type="submit" class="btn">Сохранить</button>
+                <a class="btn btn-ghost" href="{% url 'competitions:detail' pk=competition.pk %}">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

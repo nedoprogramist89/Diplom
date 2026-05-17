@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load competitions_extras %}
+{% block title %}Мои решения — {{ task.title }}{% endblock %}
+{% block content %}
+<div class="row row--between mb-1">
+    <div>
+        <h1>Мои решения</h1>
+        <p class="reading-lead mb-0">Задача: <strong>{{ task.title }}</strong> • <a href="{% url 'competitions:detail' pk=competition.pk %}">{{ competition.title }}</a></p>
+    </div>
+    <a class="btn btn-secondary" href="{% url 'competitions:solution_submit' task_id=task.pk %}">Отправить ещё</a>
+</div>
+
+{% if solutions %}
+    <div class="card"><div class="card-inner">
+        <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Ответ</th>
+                    <th>Файл</th>
+                    <th>Статус</th>
+                    <th>Баллы</th>
+                    <th>Комментарий</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in solutions %}
+                    <tr>
+                        <td>{{ s.submitted_at }}</td>
+                        <td class="td-truncate">{{ s|solution_display:task }}</td>
+                        <td>{% if s.attachment %}<a href="{{ s.attachment.url }}" target="_blank" rel="noopener">Скачать</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+                        <td>
+                            {% if s.status == 'accepted' %}
+                                <span class="badge badge-success">{{ s.get_status_display }}</span>
+                            {% elif s.status == 'rejected' %}
+                                <span class="badge badge-danger">{{ s.get_status_display }}</span>
+                            {% else %}
+                                <span class="badge">{{ s.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ s.score }}</td>
+                        <td class="muted">{{ s.comment }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div></div>
+{% else %}
+    <div class="card"><div class="card-inner">
+        <p>Решений пока нет.</p>
+        <div class="card-actions">
+            <a class="btn" href="{% url 'competitions:solution_submit' task_id=task.pk %}">Отправить решение</a>
+        </div>
+    </div></div>
+{% endif %}
+
+<div class="spacer"></div>
+<p><a class="btn btn-ghost btn-sm" href="{% url 'competitions:task_detail' pk=task.pk %}">← К задаче</a></p>
+{% endblock %}

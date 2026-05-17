@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Уведомления{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-inner">
+        <div class="row row--between mb-1 align-start">
+            <div>
+                <h1 class="mb-0">Уведомления</h1>
+                <p class="section-desc mb-0">Внутренняя лента (без писем на email). Непрочитанные подсвечены.</p>
+            </div>
+            {% if notifications_unread %}
+            <form method="post" action="{% url 'accounts:notifications_read_all' %}" class="form-inline shrink-0">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary btn-sm">Прочитать всё</button>
+            </form>
+            {% endif %}
+        </div>
+
+        {% if notifications %}
+        <ul class="list">
+            {% for n in notifications %}
+            <li class="list-item {% if not n.read_at %}notification-item--unread{% endif %}">
+                <div class="list-item-main">
+                    {% if not n.read_at %}<span class="badge badge-success text-[0.65rem] shrink-0">Новое</span>{% endif %}
+                    <p class="list-item-title mb-1">
+                        <a href="{% url 'accounts:notification_go' pk=n.pk %}">{{ n.title }}</a>
+                    </p>
+                    {% if n.body %}<p class="list-snippet mb-1">{{ n.body|linebreaksbr }}</p>{% endif %}
+                    <p class="list-item-meta text-xs mb-0">
+                        {% if n.read_at %}Прочитано {{ n.read_at }}{% else %}Не прочитано{% endif %} · {{ n.created_at }}
+                    </p>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+
+        {% if is_paginated %}
+        <div class="row row--between mt-2 mb-1">
+            <span class="text-xs muted">
+                Стр. {{ page_obj.number }} из {{ paginator.num_pages }}
+            </span>
+            {% if page_obj.has_previous %}<a class="btn btn-ghost btn-sm" href="?page={{ page_obj.previous_page_number }}">← Назад</a>{% endif %}
+            {% if page_obj.has_next %}<a class="btn btn-ghost btn-sm" href="?page={{ page_obj.next_page_number }}">Вперёд →</a>{% endif %}
+        </div>
+        {% endif %}
+        {% else %}
+        <p class="section-desc mb-0">Уведомлений пока нет.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="spacer"></div>
+<p><a href="{% url 'accounts:profile' %}" class="btn btn-ghost btn-sm">← Профиль</a></p>
+{% endblock %}

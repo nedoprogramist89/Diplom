@@ -1,0 +1,625 @@
+{% extends 'base.html' %}
+{% block title %}{% if object %}Редактирование задачи{% else %}Новая задача{% endif %}{% endblock %}
+{% block content %}
+<div class="card task-editor-card">
+    <div class="card-inner task-editor-inner">
+        <div class="task-editor-heading">
+            <h1>{% if object %}Редактирование задачи{% else %}Новая задача{% endif %}</h1>
+            <p class="reading-lead mb-0">Соревнование <strong>{{ competition.title }}</strong></p>
+        </div>
+
+        <form method="post" action="" enctype="multipart/form-data" class="task-edit-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <ul class="errorlist mb-2">{{ form.non_field_errors }}</ul>
+            {% endif %}
+
+            <div class="task-edit-layout">
+                <section class="task-edit-column task-edit-main">
+                    <header class="task-panel-label">Основное</header>
+
+                    <div class="task-field-row-two">
+                        <div class="task-field">
+                            <label for="{{ form.task_type.id_for_label }}" class="task-field-label">{{ form.task_type.label }}</label>
+                            {{ form.task_type }}
+                            {% if form.task_type.errors %}<span class="field-errors">{{ form.task_type.errors }}</span>{% endif %}
+                        </div>
+                        <div class="task-field">
+                            <label for="{{ form.subject.id_for_label }}" class="task-field-label">{{ form.subject.label }}</label>
+                            {{ form.subject }}
+                            {% if form.subject.errors %}<span class="field-errors">{{ form.subject.errors }}</span>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="task-field task-field-wide">
+                        <label for="{{ form.title.id_for_label }}" class="task-field-label">{{ form.title.label }}</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}<span class="field-errors">{{ form.title.errors }}</span>{% endif %}
+                    </div>
+
+                    <div class="task-field task-field-wide">
+                        <label for="{{ form.description.id_for_label }}" class="task-field-label">{{ form.description.label }}</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}<span class="field-errors">{{ form.description.errors }}</span>{% endif %}
+                    </div>
+                    <div class="task-field task-field-wide">
+                        <label for="{{ form.organizer_material.id_for_label }}" class="task-field-label">{{ form.organizer_material.label }}</label>
+                        {{ form.organizer_material }}
+                        {% if form.organizer_material.help_text %}<p class="task-help-micro">{{ form.organizer_material.help_text }}</p>{% endif %}
+                        {% if form.organizer_material.errors %}<span class="field-errors">{{ form.organizer_material.errors }}</span>{% endif %}
+                    </div>
+                </section>
+
+                <aside class="task-edit-column task-edit-aside">
+                    <div class="task-aside-sheet">
+                        <header class="task-panel-label">Баллы и порядок</header>
+                        <div class="task-aside-numbers">
+                            <div class="task-field">
+                                <label for="{{ form.max_score.id_for_label }}" class="task-field-label">{{ form.max_score.label }}</label>
+                                {{ form.max_score }}
+                                {% if form.max_score.errors %}<span class="field-errors">{{ form.max_score.errors }}</span>{% endif %}
+                            </div>
+                            <div class="task-field">
+                                <label for="{{ form.order.id_for_label }}" class="task-field-label">{{ form.order.label }}</label>
+                                {{ form.order }}
+                                {% if form.order.errors %}<span class="field-errors">{{ form.order.errors }}</span>{% endif %}
+                            </div>
+                        </div>
+
+                        <details class="task-optional-block mt-1" open>
+                            <summary class="task-optional-summary">Окно для участников <span class="task-optional-tag">по расписанию</span></summary>
+                            <p class="task-help-micro mb-2">Пустые поля — задача доступна по общим правилам турнира. Иначе участник видит условие и отправляет решения только в указанном интервале.</p>
+                            <div class="task-field">
+                                <label for="{{ form.opens_at.id_for_label }}" class="task-field-label">{{ form.opens_at.label }}</label>
+                                {{ form.opens_at }}
+                                {% if form.opens_at.errors %}<span class="field-errors">{{ form.opens_at.errors }}</span>{% endif %}
+                            </div>
+                            <div class="task-field">
+                                <label for="{{ form.closes_at.id_for_label }}" class="task-field-label">{{ form.closes_at.label }}</label>
+                                {{ form.closes_at }}
+                                {% if form.closes_at.errors %}<span class="field-errors">{{ form.closes_at.errors }}</span>{% endif %}
+                            </div>
+                        </details>
+
+                        <div id="field-answer-mode-wrap" class="task-answer-mode-block" {% if not task or not task.is_multiple_choice %}hidden{% endif %}>
+                            <label for="{{ form.answer_mode.id_for_label }}" class="task-field-label">{{ form.answer_mode.label }}</label>
+                            {{ form.answer_mode }}
+                            {% if form.answer_mode.help_text %}
+                            <p class="task-help-micro">{{ form.answer_mode.help_text }}</p>
+                            {% endif %}
+                            {% if form.answer_mode.errors %}<span class="field-errors">{{ form.answer_mode.errors }}</span>{% endif %}
+                        </div>
+
+                        <details class="task-optional-block">
+                            <summary class="task-optional-summary">Эталонный ответ <span class="task-optional-tag">опционально</span></summary>
+                            <div class="task-field task-field-expected">
+                                <label for="{{ form.expected_output.id_for_label }}" class="task-field-label">{{ form.expected_output.label }}</label>
+                                {{ form.expected_output }}
+                                {% if form.expected_output.errors %}<span class="field-errors">{{ form.expected_output.errors }}</span>{% endif %}
+                            </div>
+                        </details>
+                    </div>
+                </aside>
+            </div>
+
+            {% if option_formset %}
+            <section id="task-options-section" class="task-options-shell" {% if task and task.is_multiple_choice %}{% else %}hidden aria-hidden="true"{% endif %}>
+                <div class="task-options-head">
+                    <div>
+                        <h2 class="task-options-title">Варианты ответа</h2>
+                        <p class="task-options-desc">Текст в карточках — то, что увидит участник. Галочка <strong>«Правильный ответ»</strong> помечает верные строки для проверки; число <strong>«Порядок в списке»</strong> задаёт последовательность сверху вниз (0 — первой строкой). Режим «один или несколько вариантов» выбирается <strong id="opts-strong-verbs">списком справа</strong>.</p>
+                        <p class="task-help-micro task-options-micro">Если режим справа «один вариант», отметить «Правильный ответ» можно только у одной строки. Если «несколько вариантов» — галочку можно поставить у нескольких.</p>
+                        {% if option_formset.non_form_errors %}
+                        <ul class="errorlist task-options-nonform-errors">{{ option_formset.non_form_errors }}</ul>
+                        {% endif %}
+                    </div>
+                    <span class="task-options-badge" aria-hidden="true">&lt;_ options</span>
+                </div>
+
+                <div id="task-option-management">
+                    {{ option_formset.management_form }}
+                </div>
+
+                <div id="task-options-interactive">
+                    <div class="task-option-cards" id="option-formset-body">
+                        {% for f in option_formset %}
+                        <div class="task-option-card option-row{% if forloop.counter0 >= 26 %} task-option-card-numeric{% endif %}" data-form-index="{{ forloop.counter0 }}">
+                            {{ f.id }}
+                            <div class="task-option-card-top">
+                                <span class="task-option-letter" aria-hidden="true">?</span>
+                                <button type="button" class="btn btn-ghost btn-sm btn-remove-option" title="Убрать вариант" aria-label="Убрать вариант">×</button>
+                            </div>
+                            <div class="task-option-card-body">
+                                <label class="task-field-label" for="{{ f.text.id_for_label }}">{{ f.text.field.label }}</label>
+                                {{ f.text }}
+                                {% if f.text.errors %}<span class="field-errors">{{ f.text.errors }}</span>{% endif %}
+                            </div>
+                            <div class="task-option-card-foot">
+                                <div class="task-option-pill task-option-pill-correct">
+                                    {{ f.is_correct }}
+                                    <label for="{{ f.is_correct.id_for_label }}" title="{{ f.is_correct.field.help_text|default_if_none:'' }}">Правильный</label>
+                                    {% if f.is_correct.errors %}<span class="field-errors">{{ f.is_correct.errors }}</span>{% endif %}
+                                </div>
+                                <div class="task-option-pill task-option-pill-order">
+                                    <label for="{{ f.order.id_for_label }}">{{ f.order.field.label }}</label>
+                                    {{ f.order }}
+                                    {% if f.order.errors %}<span class="field-errors">{{ f.order.errors }}</span>{% endif %}
+                                </div>
+                            </div>
+                            {% if f.DELETE %}<span class="cell-remove hidden-delete">{{ f.DELETE }}</span>{% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="task-options-actions">
+                        <button type="button" id="add-option-row" class="btn btn-secondary btn-sm">+ Добавить вариант</button>
+                    </div>
+                </div>
+
+                <template id="option-row-template">
+                    <div class="task-option-card option-row">
+                        {{ option_formset.empty_form.id }}
+                        <div class="task-option-card-top">
+                            <span class="task-option-letter" aria-hidden="true">?</span>
+                            <button type="button" class="btn btn-ghost btn-sm btn-remove-option" title="Убрать вариант" aria-label="Убрать вариант">×</button>
+                        </div>
+                        <div class="task-option-card-body">
+                            <label class="task-field-label" for="{{ option_formset.empty_form.text.id_for_label }}">{{ option_formset.empty_form.text.field.label }}</label>
+                            {{ option_formset.empty_form.text }}
+                            <span class="field-errors"></span>
+                        </div>
+                        <div class="task-option-card-foot">
+                            <div class="task-option-pill task-option-pill-correct">
+                                {{ option_formset.empty_form.is_correct }}
+                                <label for="{{ option_formset.empty_form.is_correct.id_for_label }}">Правильный</label>
+                            </div>
+                            <div class="task-option-pill task-option-pill-order">
+                                <label for="{{ option_formset.empty_form.order.id_for_label }}">{{ option_formset.empty_form.order.field.label }}</label>
+                                {{ option_formset.empty_form.order }}
+                            </div>
+                        </div>
+                        <span class="cell-remove hidden-delete">{{ option_formset.empty_form.DELETE }}</span>
+                    </div>
+                </template>
+            </section>
+            {% endif %}
+
+            {% if match_pair_formset %}
+            <section id="task-match-pairs-section" class="task-match-shell" {% if task and task.is_matching %}{% else %}hidden aria-hidden="true"{% endif %}>
+                <div class="task-options-head">
+                    <div>
+                        <h2 class="task-options-title">Установите соответствия</h2>
+                        <p class="task-options-desc">Каждая строка — сопоставление: слева то, что увидит участник; справа — <strong>верный элемент</strong> из общего набора правых ответов. У участника для каждой строки слева будет <strong>выпадающий список</strong> из всех «правых» подписей (порядок в списке перемешивается автоматически). Минимум <strong>две заполненные пары</strong>.</p>
+                        <p class="task-help-micro task-options-micro">Несколько строк могут использовать одинаковый текст справа только если у вариантов совпадает суть; технически лучше делать их различимыми (напр. добавить суффикс в скобках).</p>
+                        {% if match_pair_formset.non_form_errors %}
+                        <ul class="errorlist task-options-nonform-errors">{{ match_pair_formset.non_form_errors }}</ul>
+                        {% endif %}
+                    </div>
+                    <span class="task-options-badge" aria-hidden="true">&lt;_ pairs</span>
+                </div>
+                {{ match_pair_formset.management_form }}
+                <div id="task-match-interactive">
+                    <div class="task-match-cards" id="match-pairs-formset-body">
+                        {% for f in match_pair_formset %}
+                        <div class="task-match-card task-match-row">
+                            {{ f.id }}
+                            <div class="task-match-num-badge" aria-hidden="true"><span class="task-match-pair-index">{{ forloop.counter }}</span></div>
+                            <div class="task-match-card-main">
+                                <div class="task-match-card-top">
+                                    <p class="task-match-card-title">Пара <span class="task-match-pair-index">{{ forloop.counter }}</span></p>
+                                    <button type="button" class="btn btn-ghost btn-sm btn-remove-match-row" title="Убрать пару из списка" aria-label="Убрать пару из списка">×</button>
+                                </div>
+                                <div class="task-match-card-grid">
+                                    <div class="task-match-cell task-match-cell-order">
+                                        <label for="{{ f.order.id_for_label }}" class="task-field-label">{{ f.order.label }}</label>
+                                        {{ f.order }}
+                                        {% if f.order.errors %}<span class="field-errors">{{ f.order.errors }}</span>{% endif %}
+                                    </div>
+                                    <div class="task-match-cell task-match-cell-left">
+                                        <label for="{{ f.left_text.id_for_label }}" class="task-field-label">{{ f.left_text.label }}</label>
+                                        {{ f.left_text }}
+                                        {% if f.left_text.errors %}<span class="field-errors">{{ f.left_text.errors }}</span>{% endif %}
+                                    </div>
+                                    <div class="task-match-cell task-match-cell-right">
+                                        <label for="{{ f.right_text.id_for_label }}" class="task-field-label">{{ f.right_text.label }}</label>
+                                        {{ f.right_text }}
+                                        {% if f.right_text.errors %}<span class="field-errors">{{ f.right_text.errors }}</span>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="cell-remove hidden-delete">{{ f.DELETE }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="task-options-actions">
+                        <button type="button" id="add-match-pair-row" class="btn btn-secondary btn-sm">+ Добавить пару</button>
+                    </div>
+                </div>
+                <template id="match-pair-row-template">
+                    <div class="task-match-card task-match-row">
+                        {{ match_pair_formset.empty_form.id }}
+                        <div class="task-match-num-badge" aria-hidden="true"><span class="task-match-pair-index">1</span></div>
+                        <div class="task-match-card-main">
+                            <div class="task-match-card-top">
+                                <p class="task-match-card-title">Пара <span class="task-match-pair-index">1</span></p>
+                                <button type="button" class="btn btn-ghost btn-sm btn-remove-match-row" title="Убрать пару из списка" aria-label="Убрать пару из списка">×</button>
+                            </div>
+                            <div class="task-match-card-grid">
+                                <div class="task-match-cell task-match-cell-order">
+                                    <label for="{{ match_pair_formset.empty_form.order.id_for_label }}" class="task-field-label">{{ match_pair_formset.empty_form.order.label }}</label>
+                                    {{ match_pair_formset.empty_form.order }}
+                                </div>
+                                <div class="task-match-cell task-match-cell-left">
+                                    <label for="{{ match_pair_formset.empty_form.left_text.id_for_label }}" class="task-field-label">{{ match_pair_formset.empty_form.left_text.label }}</label>
+                                    {{ match_pair_formset.empty_form.left_text }}
+                                </div>
+                                <div class="task-match-cell task-match-cell-right">
+                                    <label for="{{ match_pair_formset.empty_form.right_text.id_for_label }}" class="task-field-label">{{ match_pair_formset.empty_form.right_text.label }}</label>
+                                    {{ match_pair_formset.empty_form.right_text }}
+                                </div>
+                            </div>
+                        </div>
+                        <span class="cell-remove hidden-delete">{{ match_pair_formset.empty_form.DELETE }}</span>
+                    </div>
+                </template>
+            </section>
+            {% endif %}
+
+            <div class="form-actions">
+                <button type="submit" class="btn">Сохранить</button>
+                <a class="btn btn-ghost" href="{% url 'competitions:task_list' competition_id=competition.pk %}">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+{% if task_types %}
+(function() {
+    window.HZ_TASK_TYPE_SLUG = {
+{% for t in task_types %}
+        '{{ t.pk|escapejs }}': '{{ t.slug|escapejs }}'{% if not forloop.last %},{% endif %}
+{% endfor %}
+    };
+})();
+{% endif %}
+(function() {
+    var HZ = window.HZ_TASK_TYPE_SLUG || {};
+    var typeSel = document.getElementById('id_task_type');
+    var modeSel = document.getElementById('id_answer_mode');
+    var mcWrap = document.getElementById('field-answer-mode-wrap');
+
+    function getSlug() {
+        if (!typeSel) return '';
+        return HZ[typeSel.value] || '';
+    }
+
+    function isMc() {
+        return getSlug() === 'multiple_choice';
+    }
+
+    function isMatch() {
+        return getSlug() === 'match';
+    }
+
+    function setAnswerModeVisibility(on) {
+        if (!mcWrap) return;
+        mcWrap.hidden = !on;
+    }
+
+    function syncVerbHint() {
+        var verbs = document.getElementById('opts-strong-verbs');
+        if (!verbs || !modeSel) return;
+        if (modeSel.value === 'many') {
+            verbs.textContent =
+                'в списке справа выбрано «несколько вариантов» — участник может отметить несколько строк';
+        } else {
+            verbs.textContent =
+                'в списке справа выбран «один вариант» — участник отмечает только одну строку';
+        }
+    }
+
+    function syncTaskTypePanels() {
+        var mc = isMc();
+        var mch = isMatch();
+        var section = document.getElementById('task-options-section');
+        var box = document.getElementById('task-options-interactive');
+        var matchSection = document.getElementById('task-match-pairs-section');
+        var matchBox = document.getElementById('task-match-interactive');
+        setAnswerModeVisibility(mc);
+
+        if (section) {
+            section.hidden = !mc;
+            section.setAttribute('aria-hidden', mc ? 'false' : 'true');
+        }
+        if (box) {
+            box.querySelectorAll('input, textarea, select, button').forEach(function(el) {
+                el.disabled = !mc;
+            });
+            if (mc && typeof window.hzRefreshCorrectChoiceLocks === 'function') {
+                window.hzRefreshCorrectChoiceLocks();
+            }
+        }
+        if (matchSection) {
+            matchSection.hidden = !mch;
+            matchSection.setAttribute('aria-hidden', mch ? 'false' : 'true');
+        }
+        if (matchBox) {
+            matchBox.querySelectorAll('input, textarea, select, button').forEach(function(el) {
+                el.disabled = !mch;
+            });
+            if (mch && typeof window.hzRefreshMatchPairNumbers === 'function') {
+                window.hzRefreshMatchPairNumbers();
+            }
+        }
+        if (typeof window.hzRefreshOptionLetters === 'function') window.hzRefreshOptionLetters();
+        syncVerbHint();
+    }
+
+    if (typeSel) typeSel.addEventListener('change', syncTaskTypePanels);
+    if (modeSel) {
+        modeSel.addEventListener('change', function() {
+            syncVerbHint();
+            if (typeof window.hzOnAnswerModeMaybeChanged === 'function') {
+                window.hzOnAnswerModeMaybeChanged();
+            }
+        });
+    }
+    syncTaskTypePanels();
+})();
+</script>
+
+{% if option_formset %}
+<script>
+(function() {
+    var HZ = window.HZ_TASK_TYPE_SLUG || {};
+    var tbody = document.getElementById('option-formset-body');
+    var addBtn = document.getElementById('add-option-row');
+    var template = document.getElementById('option-row-template');
+    var prefix = 'options';
+
+    function isMcNow() {
+        var typeSel = document.getElementById('id_task_type');
+        if (!typeSel) return false;
+        return (HZ[typeSel.value] || '') === 'multiple_choice';
+    }
+
+    function getTotalForms() {
+        var inp = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+        return inp ? parseInt(inp.value, 10) : 0;
+    }
+
+    function setTotalForms(n) {
+        var inp = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+        if (inp) inp.value = n;
+    }
+
+    function replacePrefix(el, idx) {
+        el.querySelectorAll('[id]').forEach(function(node) {
+            node.id = node.id.replace(/__prefix__/g, idx);
+        });
+        el.querySelectorAll('[name]').forEach(function(node) {
+            node.name = node.name.replace(/__prefix__/g, idx);
+        });
+        el.querySelectorAll('label').forEach(function(node) {
+            var forAttr = node.getAttribute('for');
+            if (forAttr) node.setAttribute('for', forAttr.replace(/__prefix__/g, idx));
+        });
+    }
+
+    function refreshLetters() {
+        if (!tbody) return;
+        var visible = tbody.querySelectorAll('.task-option-card:not(.row-removed)');
+        visible.forEach(function(row, i) {
+            var b = row.querySelector('.task-option-letter');
+            if (!b) return;
+            if (i < 26) {
+                b.textContent = String.fromCharCode(65 + i);
+                row.classList.remove('task-option-card-numeric');
+            } else {
+                b.textContent = String(i + 1);
+                row.classList.add('task-option-card-numeric');
+            }
+        });
+    }
+    window.hzRefreshOptionLetters = refreshLetters;
+
+    function isMultiAnswerMode() {
+        var m = document.getElementById('id_answer_mode');
+        return m && m.value === 'many';
+    }
+
+    /** В режиме «один вариант» оставляем только одну отмеченную правильность; «несколько» — без изменений. */
+    function coalesceSingleCorrectIfNeeded() {
+        if (isMultiAnswerMode() || !tbody) return;
+        var sel = '.task-option-card:not(.row-removed) input[type="checkbox"][name$="-is_correct"]';
+        var checked = [];
+        tbody.querySelectorAll(sel).forEach(function(cb) {
+            if (cb.checked) checked.push(cb);
+        });
+        if (checked.length <= 1) return;
+        checked.slice(1).forEach(function(cb) {
+            cb.checked = false;
+        });
+    }
+
+    /** «Один из списка»: при выбранной правильности остальные чекбоксы блокируются; если ни одной — все доступны. */
+    function refreshCorrectChoiceLocks() {
+        if (!tbody || !isMcNow()) return;
+        var sel = '.task-option-card:not(.row-removed) input[type="checkbox"][name$="-is_correct"]';
+        if (isMultiAnswerMode()) {
+            tbody.querySelectorAll(sel).forEach(function(cb) {
+                cb.disabled = false;
+            });
+            return;
+        }
+        var inputs = Array.prototype.slice.call(tbody.querySelectorAll(sel));
+        var nChecked = inputs.filter(function(cb) {
+            return cb.checked;
+        }).length;
+        inputs.forEach(function(cb) {
+            if (nChecked >= 1) {
+                cb.disabled = !cb.checked;
+            } else {
+                cb.disabled = false;
+            }
+        });
+    }
+
+    window.hzRefreshCorrectChoiceLocks = refreshCorrectChoiceLocks;
+
+    window.hzOnAnswerModeMaybeChanged = function() {
+        coalesceSingleCorrectIfNeeded();
+        refreshCorrectChoiceLocks();
+    };
+
+    if (tbody) {
+        tbody.addEventListener('change', function(e) {
+            var t = e.target;
+            if (!t.matches || !t.matches('input[type="checkbox"][name$="-is_correct"]')) return;
+            if (isMcNow() && !isMultiAnswerMode() && t.checked) {
+                tbody.querySelectorAll('.task-option-card:not(.row-removed) input[type="checkbox"][name$="-is_correct"]').forEach(function(cb) {
+                    if (cb !== t) cb.checked = false;
+                });
+            }
+            refreshCorrectChoiceLocks();
+        });
+    }
+
+    if (tbody && template && addBtn) {
+        addBtn.addEventListener('click', function() {
+            if (!isMcNow()) return;
+            var nextIndex = getTotalForms();
+            var clone = template.content.cloneNode(true);
+            var row = clone.querySelector('.task-option-card');
+            if (!row) return;
+            row.setAttribute('data-form-index', nextIndex);
+            replacePrefix(row, nextIndex);
+            tbody.appendChild(clone);
+            setTotalForms(nextIndex + 1);
+            refreshLetters();
+            var box = document.getElementById('task-options-interactive');
+            if (box && isMcNow()) {
+                box.querySelectorAll('input, textarea, select, button').forEach(function(el) {
+                    el.disabled = false;
+                });
+            }
+            refreshCorrectChoiceLocks();
+        });
+
+        tbody.addEventListener('click', function(e) {
+            var btn = e.target.closest('.btn-remove-option');
+            if (!btn) return;
+            var row = btn.closest('.task-option-card.option-row');
+            if (!row) return;
+            var deleteInput = row.querySelector('.hidden-delete input[type="checkbox"][name$="-DELETE"]');
+            if (deleteInput) {
+                deleteInput.checked = true;
+                row.classList.add('row-removed');
+                btn.disabled = true;
+            }
+            refreshLetters();
+            refreshCorrectChoiceLocks();
+        });
+    }
+
+    refreshLetters();
+    coalesceSingleCorrectIfNeeded();
+    refreshCorrectChoiceLocks();
+})();
+</script>
+{% endif %}
+
+{% if match_pair_formset %}
+<script>
+(function() {
+    var HZ = window.HZ_TASK_TYPE_SLUG || {};
+    var body = document.getElementById('match-pairs-formset-body');
+    var addBtn = document.getElementById('add-match-pair-row');
+    var template = document.getElementById('match-pair-row-template');
+    var prefix = 'match_pairs';
+
+    function isMatchNow() {
+        var typeSel = document.getElementById('id_task_type');
+        if (!typeSel) return false;
+        return (HZ[typeSel.value] || '') === 'match';
+    }
+
+    function getTotal() {
+        var inp = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+        return inp ? parseInt(inp.value, 10) : 0;
+    }
+
+    function setTotal(n) {
+        var inp = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+        if (inp) inp.value = n;
+    }
+
+    function replacePrefix(el, idx) {
+        el.querySelectorAll('[id]').forEach(function(node) {
+            node.id = node.id.replace(/__prefix__/g, idx);
+        });
+        el.querySelectorAll('[name]').forEach(function(node) {
+            node.name = node.name.replace(/__prefix__/g, idx);
+        });
+        el.querySelectorAll('label').forEach(function(node) {
+            var forAttr = node.getAttribute('for');
+            if (forAttr) node.setAttribute('for', forAttr.replace(/__prefix__/g, idx));
+        });
+    }
+
+    function enableMatchInteractive(on) {
+        var matchBox = document.getElementById('task-match-interactive');
+        if (!matchBox) return;
+        matchBox.querySelectorAll('input, textarea, select, button').forEach(function(el) {
+            el.disabled = !on;
+        });
+    }
+
+    function refreshMatchPairNumbers() {
+        if (!body) return;
+        var rows = body.querySelectorAll('.task-match-row:not(.row-removed)');
+        rows.forEach(function(row, i) {
+            var n = String(i + 1);
+            row.querySelectorAll('.task-match-pair-index').forEach(function(el) {
+                el.textContent = n;
+            });
+        });
+    }
+    window.hzRefreshMatchPairNumbers = refreshMatchPairNumbers;
+
+    if (body && template && addBtn) {
+        addBtn.addEventListener('click', function() {
+            if (!isMatchNow()) return;
+            var nextIndex = getTotal();
+            var clone = template.content.cloneNode(true);
+            var row = clone.querySelector('.task-match-row');
+            if (!row) return;
+            replacePrefix(row, nextIndex);
+            body.appendChild(clone);
+            setTotal(nextIndex + 1);
+            enableMatchInteractive(true);
+            refreshMatchPairNumbers();
+        });
+
+        body.addEventListener('click', function(e) {
+            var btn = e.target.closest('.btn-remove-match-row');
+            if (!btn) return;
+            var row = btn.closest('.task-match-row');
+            if (!row) return;
+            var delCb = row.querySelector('.hidden-delete input[type="checkbox"][name$="-DELETE"]');
+            if (delCb) {
+                delCb.checked = true;
+                row.classList.add('row-removed');
+                btn.disabled = true;
+            }
+            refreshMatchPairNumbers();
+        });
+    }
+
+    refreshMatchPairNumbers();
+})();
+</script>
+{% endif %}
+{% endblock %}
